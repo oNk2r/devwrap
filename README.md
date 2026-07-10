@@ -1,0 +1,1 @@
+DevWrap — A "Spotify Wrapped" for developers using GitHub data and AI-generated insights.
