@@ -1,7 +1,8 @@
-// server/index.js
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+// server/index.ts
+import 'dotenv/config';
+import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import githubRoutes from './routes/github.routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -14,13 +15,16 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Mount routes
+app.use('/api', githubRoutes);
+
 // Basic health check route
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', message: 'DevWrap server is running' });
 });
 
-// Centralized error handling middleware (prevents leaking stack traces)
-app.use((err, req, res, next) => {
+// Centralized error handling middleware
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled Error:', err);
   res.status(err.status || 500).json({
     error: {
