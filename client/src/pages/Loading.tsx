@@ -143,7 +143,7 @@ export default function Loading() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-400 font-mono flex items-center justify-center p-4 selection:bg-emerald-500 selection:text-black">
+    <main className="min-h-screen bg-black text-zinc-400 font-mono flex items-center justify-center p-4 selection:bg-emerald-500 selection:text-black">
       {/* Subtle scanlines */}
       <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.005)_1px,transparent_1px)] bg-[size:100%_4px] pointer-events-none" />
 
