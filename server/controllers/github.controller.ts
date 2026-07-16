@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { githubService } from '../services/github/github.service.js';
 import { analyticsService } from '../services/analytics/analytics.service.js';
+import { geminiService } from '../services/gemini/gemini.service.js';
 
 // Helper to wrap delay in async/await
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -61,6 +62,17 @@ export class GitHubController {
       const processedResult = analyticsService.analyze(rawProfile, rawRepos);
       await delay(400);
 
+      sendLog(`consulting gemini model for observations...`);
+      const geminiResult = await geminiService.generateRecap(
+        processedResult.profile.username,
+        processedResult.profile.name,
+        processedResult.profile.bio,
+        processedResult.stats.topLanguages,
+        processedResult.stats.totalStars,
+        processedResult.profile.publicRepos
+      );
+      await delay(400);
+
       sendLog(`building workspace modules...`);
       await delay(400);
 
@@ -68,7 +80,12 @@ export class GitHubController {
       await delay(200);
 
       // 5. Send completed result
-      sendData(processedResult);
+      sendData({
+        ...processedResult,
+        aiSummary: geminiResult.summary,
+        archetype: geminiResult.archetype,
+        archetypeSentence: geminiResult.archetypeSentence
+      });
     } catch (error: any) {
       console.error(`Error in stream for ${username}:`, error);
       const status = error.status || 500;

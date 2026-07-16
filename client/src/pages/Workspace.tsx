@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ExternalLink, Star, GitFork, ArrowLeft } from 'lucide-react';
+import { ExternalLink, Star, GitFork, ArrowLeft, Calendar, BookOpen, Users, Download } from 'lucide-react';
 import useProfileStore from '../store/profileStore';
 
 export default function Workspace() {
@@ -9,7 +9,6 @@ export default function Workspace() {
   const navigate = useNavigate();
   const { profileData, setUsername, reset } = useProfileStore();
 
-  // Redirect to loading if we refresh the page and don't have stored data
   useEffect(() => {
     if (!profileData && username) {
       setUsername(username);
@@ -19,8 +18,12 @@ export default function Workspace() {
 
   if (!profileData) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center font-mono text-zinc-500">
-        Re-connecting shell...
+      <div className="min-h-screen bg-[#090909] flex flex-col items-center justify-center text-neutral-500 font-mono gap-4 scanlines">
+        <svg className="animate-spin h-6 w-6 text-[#9FE870]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span className="text-[10px] tracking-widest uppercase font-semibold">re-connecting stream...</span>
       </div>
     );
   }
@@ -44,194 +47,371 @@ export default function Workspace() {
     }
   };
 
-  return (
-    <main className="min-h-screen bg-black text-zinc-400 font-mono p-4 md:p-8 flex flex-col items-center justify-center selection:bg-emerald-500 selection:text-black">
-      {/* Subtle scanline background grid */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.005)_1px,transparent_1px)] bg-[size:100%_4px] pointer-events-none" />
+  // Local fallbacks if backend AI fields are missing
+  const primaryLang = stats.topLanguages[0]?.language || 'TypeScript';
+  const defaultSummary = [
+    primaryLang === 'TypeScript' || primaryLang === 'JavaScript'
+      ? 'TypeScript became your strongest language for system builds.'
+      : `You built consistently using ${primaryLang} for core projects.`,
+    stats.totalStars > 50
+      ? `Your open-source modules accumulated ${stats.totalStars} community stars.`
+      : 'Your repositories demonstrate modular system structures.',
+    `Open-source footprint dates back to ${new Date(profile.createdAt).getFullYear()}.`
+  ];
 
-      {/* Main Terminal Shell container */}
-      <div className="w-full max-w-5xl border border-zinc-800 rounded-lg bg-zinc-900 shadow-2xl flex flex-col overflow-hidden">
+  let defaultArchetype = 'THE BUILDER';
+  let defaultArchetypeSentence = 'You create functional codebases, shipping clean repositories with clear layouts.';
+
+  if (primaryLang === 'TypeScript' || primaryLang === 'JavaScript') {
+    defaultArchetype = 'THE ARCHITECT';
+    defaultArchetypeSentence = 'You construct high-scale web modules with precise type systems and modular interfaces.';
+  } else if (primaryLang === 'Python') {
+    defaultArchetype = 'THE ANALYST';
+    defaultArchetypeSentence = 'You translate complex data loops and algorithms into automated pipeline scripts.';
+  } else if (primaryLang === 'Rust' || primaryLang === 'Go' || primaryLang === 'C++') {
+    defaultArchetype = 'THE SYSTEM BUILDER';
+    defaultArchetypeSentence = 'You compile high-performance primitives, prioritizing memory safety and speed.';
+  }
+
+  const finalSummary = profileData.aiSummary || defaultSummary;
+  const finalArchetype = profileData.archetype || defaultArchetype;
+  const finalArchetypeSentence = profileData.archetypeSentence || defaultArchetypeSentence;
+
+  const renderHeatmap = () => {
+    const cols = 35;
+    const rows = 7;
+    const totalCells = cols * rows;
+    const cells: number[] = [];
+    
+    for (let i = 0; i < totalCells; i++) {
+      let level = 0;
+      const rand = Math.sin(i * 0.15) + Math.cos(i * 0.05);
+      if (rand > 1.2) level = 3;
+      else if (rand > 0.6) level = 2;
+      else if (rand > 0.0) level = 1;
+      else level = 0;
+      cells.push(level);
+    }
+
+    return (
+      <div className="flex flex-col items-center justify-center p-6 bg-[#0c0c0c] border border-[#1a1a1a] rounded-xl space-y-4 w-full">
+        <div className="flex space-x-1 overflow-x-auto max-w-full pb-2 select-none">
+          {Array.from({ length: cols }).map((_, colIdx) => (
+            <div key={colIdx} className="flex flex-col space-y-1">
+              {Array.from({ length: rows }).map((_, rowIdx) => {
+                const cellIdx = colIdx * rows + rowIdx;
+                const level = cells[cellIdx];
+                let bgClass = "bg-[#141414]";
+                if (level === 1) bgClass = "bg-[#223912]";
+                if (level === 2) bgClass = "bg-[#38661d]";
+                if (level === 3) bgClass = "bg-[#9FE870]";
+                
+                return (
+                  <div 
+                    key={rowIdx} 
+                    className={`w-2.5 h-2.5 rounded-sm ${bgClass} transition-colors duration-200 hover:border hover:border-neutral-500`}
+                  />
+                );
+              })}
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center space-x-2 text-[9px] text-neutral-500 self-end pr-2 font-mono select-none">
+          <span>Less</span>
+          <div className="w-2.5 h-2.5 rounded-sm bg-[#141414]" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-[#223912]" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-[#38661d]" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-[#9FE870]" />
+          <span>More</span>
+        </div>
+      </div>
+    );
+  };
+
+  const renderArchetypeIllustration = (title: string) => {
+    return (
+      <svg className="w-12 h-12 text-[#9FE870]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+        {title === 'THE ARCHITECT' && (
+          <>
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <path d="M9 3v18M15 3v18M3 9h18M3 15h18" />
+          </>
+        )}
+        {title === 'THE ANALYST' && (
+          <>
+            <path d="M3 3v18h18" />
+            <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
+          </>
+        )}
+        {title === 'THE SYSTEM BUILDER' && (
+          <>
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </>
+        )}
+        {title === 'THE BUILDER' && (
+          <>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </>
+        )}
+      </svg>
+    );
+  };
+
+  // Exporter to screenshot the recap window as a PNG
+  const handleExport = () => {
+    const node = document.getElementById('recap-window');
+    if (!node) return;
+
+    import('html-to-image').then((htmlToImage) => {
+      htmlToImage.toPng(node, {
+        cacheBust: true,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left',
+          width: node.offsetWidth + 'px',
+          height: node.offsetHeight + 'px'
+        }
+      })
+      .then((dataUrl) => {
+        const link = document.createElement('a');
+        link.download = `devwrap-${profile.username}.png`;
+        link.href = dataUrl;
+        link.click();
+      })
+      .catch((err) => {
+        console.error('Failed generating png recap card:', err);
+      });
+    });
+  };
+
+  return (
+    <main className="min-h-screen bg-[#090909] text-neutral-400 font-mono p-4 md:p-8 flex flex-col items-center justify-center selection:bg-[#9FE870]/20 selection:text-[#9FE870] relative overflow-hidden scanlines">
+      
+      {/* Centered Application Window */}
+      <div id="recap-window" className="w-full max-w-5xl rounded-2xl os-window flex flex-col overflow-hidden relative z-10 fade-in">
         
-        {/* Terminal Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-zinc-950 border-b border-zinc-800">
+        {/* Top Window Title Bar */}
+        <div className="flex items-center justify-between px-6 py-4 bg-[#0d0d0d] border-b border-[#1a1a1a] select-none">
           <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-red-500/80" />
-            <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-            <div className="w-3 h-3 rounded-full bg-green-500/80" />
+            <div className="w-3 h-3 rounded-full bg-[#262626] border border-[#1a1a1a]" />
+            <div className="w-3 h-3 rounded-full bg-[#262626] border border-[#1a1a1a]" />
+            <div className="w-3 h-3 rounded-full bg-[#262626] border border-[#1a1a1a]" />
           </div>
-          <span className="text-xs text-zinc-500 font-semibold select-none">
+          <span className="text-[11px] text-neutral-500 tracking-wider">
             devwrap // workspace // {profile.username}
           </span>
           
-          {/* Back Action */}
           <button 
             onClick={handleBack}
-            className="flex items-center space-x-1 text-xs text-zinc-500 hover:text-emerald-400 transition-colors bg-transparent border-0 outline-none cursor-pointer"
+            className="flex items-center space-x-1.5 text-[11px] text-neutral-500 hover:text-white transition-colors bg-transparent border-0 outline-none cursor-pointer font-mono"
           >
-            <ArrowLeft className="w-3 h-3" />
+            <ArrowLeft className="w-3.5 h-3.5" />
             <span>cd ..</span>
           </button>
         </div>
 
-        {/* Dashboard Grid Layout */}
-        <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-zinc-800 min-h-[500px]">
+        {/* Workspace Layout Split */}
+        <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-[#1a1a1a] min-h-[500px]">
           
-          {/* Left Panel: Profile Detail */}
-          <div className="w-full md:w-80 p-6 flex flex-col space-y-6">
-            <div className="flex flex-col items-center text-center space-y-4">
-              {/* Profile Avatar */}
-              <div className="relative group">
-                <img
-                  src={profile.avatarUrl}
-                  alt={profile.name}
-                  className="w-36 h-36 rounded border border-zinc-700 bg-zinc-800 object-cover"
-                />
-                <div className="absolute inset-0 border border-emerald-500/0 group-hover:border-emerald-500/30 rounded pointer-events-none transition-colors" />
-              </div>
+          {/* LEFT SIDEBAR - Narrow, stacked */}
+          <div className="w-full md:w-60 p-6 space-y-6 flex flex-col bg-[#0b0b0b] shrink-0 font-mono text-xs select-none">
+            
+            <div className="flex flex-col space-y-4">
+              <img
+                src={profile.avatarUrl}
+                alt={profile.name}
+                className="w-20 h-20 rounded-xl border border-[#1a1a1a] bg-[#090909] object-cover"
+              />
 
-              <div>
-                <h1 className="text-lg font-bold text-zinc-100">{profile.name}</h1>
-                <p className="text-xs text-emerald-400">@{profile.username}</p>
+              <div className="space-y-1">
+                <h1 className="text-sm font-bold text-white m-0 tracking-tight leading-none">{profile.name}</h1>
+                <p className="text-neutral-500 m-0">@{profile.username}</p>
               </div>
             </div>
 
-            {/* Profile Bio */}
-            <div className="border-t border-b border-zinc-800 py-4 text-xs md:text-sm text-zinc-400 leading-relaxed">
-              <span className="text-zinc-600 block text-[10px] uppercase font-bold tracking-wider mb-1">
-                Biography
-              </span>
-              <p>{profile.bio}</p>
-            </div>
+            {profile.bio && (
+              <p className="text-neutral-500 leading-relaxed m-0 font-sans border-t border-[#1a1a1a] pt-4">
+                {profile.bio}
+              </p>
+            )}
 
-            {/* Profile Metrics */}
-            <div className="space-y-3 text-xs">
-              <span className="text-zinc-600 block text-[10px] uppercase font-bold tracking-wider">
-                System Metadata
-              </span>
-              <div className="flex justify-between border-b border-dashed border-zinc-800 pb-1.5">
-                <span className="text-zinc-500">FOLLOWERS:</span>
-                <span className="text-zinc-200 font-semibold">{profile.followers}</span>
+            {/* Profile Statistics Stacked */}
+            <div className="space-y-2 border-t border-[#1a1a1a] pt-4 text-[11px] text-neutral-400">
+              <div className="flex items-center space-x-2">
+                <Users className="w-3.5 h-3.5 text-neutral-600" />
+                <span>FOLLOWERS: <span className="text-white font-bold">{profile.followers}</span></span>
               </div>
-              <div className="flex justify-between border-b border-dashed border-zinc-800 pb-1.5">
-                <span className="text-zinc-500">FOLLOWING:</span>
-                <span className="text-zinc-200 font-semibold">{profile.following}</span>
+              <div className="flex items-center space-x-2">
+                <BookOpen className="w-3.5 h-3.5 text-neutral-600" />
+                <span>REPOSITORIES: <span className="text-white font-bold">{profile.publicRepos}</span></span>
               </div>
-              <div className="flex justify-between border-b border-dashed border-zinc-800 pb-1.5">
-                <span className="text-zinc-500">REPOSITORIES:</span>
-                <span className="text-zinc-200 font-semibold">{profile.publicRepos}</span>
-              </div>
-              <div className="flex justify-between pb-1.5">
-                <span className="text-zinc-500">CREATED:</span>
-                <span className="text-zinc-200 font-semibold">{formatDate(profile.createdAt)}</span>
+              <div className="flex items-center space-x-2">
+                <Calendar className="w-3.5 h-3.5 text-neutral-600" />
+                <span>JOINED: <span className="text-white font-bold">{formatDate(profile.createdAt)}</span></span>
               </div>
             </div>
 
-            {/* External link */}
-            <div className="pt-2 flex-grow flex flex-col justify-end">
+            {/* GitHub and Exporter Controls */}
+            <div className="pt-2 flex-grow flex flex-col justify-end space-y-2">
+              <button
+                onClick={handleExport}
+                className="w-full py-2 border border-[#1a1a1a] hover:border-[#9FE870] text-neutral-400 hover:text-[#9FE870] text-center text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1.5 bg-transparent cursor-pointer"
+              >
+                <span>Export Recap</span>
+                <Download className="w-3.5 h-3.5" />
+              </button>
               <a
                 href={profile.githubUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full py-2 border border-zinc-700 hover:border-emerald-500/50 hover:text-emerald-400 text-center text-xs font-semibold rounded transition-colors flex items-center justify-center space-x-1.5"
+                className="w-full py-2 border border-[#1a1a1a] hover:border-neutral-500 text-neutral-400 hover:text-white text-center text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1.5 shadow-sm bg-transparent cursor-pointer"
               >
-                <span>github.profile</span>
+                <span>GitHub Profile</span>
                 <ExternalLink className="w-3.5 h-3.5" />
               </a>
             </div>
           </div>
 
-          {/* Right Panel: Source Repositories */}
-          <div className="flex-1 flex flex-col">
-            {/* Header banner */}
-            <div className="px-6 py-4 bg-zinc-950/30 border-b border-zinc-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <span className="text-sm font-bold uppercase tracking-wider text-zinc-300">
-                Source Repositories ({repositories.length})
-              </span>
-              
-              {/* Stars & Forks Aggregated */}
-              <div className="flex items-center space-x-4 text-xs font-semibold text-zinc-500 select-none">
-                <div className="flex items-center space-x-1">
-                  <Star className="w-3.5 h-3.5 text-zinc-600" />
-                  <span>STARS: <span className="text-zinc-300">{stats.totalStars}</span></span>
+          {/* MAIN CONTENT AREA */}
+          <div className="flex-1 p-8 space-y-8 overflow-y-auto max-h-[720px] bg-[#0d0d0d]">
+            
+            {/* TOP BAR nav link tags */}
+            <div className="flex items-center space-x-2 text-[10px] text-neutral-500 font-mono tracking-wider uppercase border-b border-[#1a1a1a] pb-3 select-none">
+              <span>workspace</span>
+              <span className="text-neutral-700">//</span>
+              <span className="text-white font-bold">overview</span>
+              <span className="text-neutral-700">//</span>
+              <span>repositories</span>
+              <span className="text-neutral-700">//</span>
+              <span>languages</span>
+              <span className="text-neutral-700">//</span>
+              <span>commits</span>
+              <span className="text-neutral-700">//</span>
+              <span>AI</span>
+            </div>
+
+            {/* SECTION 1 - Overview Statistic cards */}
+            <div className="space-y-3">
+              <span className="text-[10px] text-neutral-500 uppercase tracking-widest block select-none">Overview</span>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-4 bg-[#090909] border border-[#1a1a1a] rounded-xl flex flex-col justify-between hover:border-neutral-700 transition-colors">
+                  <span className="text-[10px] text-neutral-500 uppercase tracking-widest">⭐ Stars</span>
+                  <span className="text-2xl font-bold text-white mt-2">{stats.totalStars}</span>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <GitFork className="w-3.5 h-3.5 text-zinc-600" />
-                  <span>FORKS: <span className="text-zinc-300">{stats.totalForks}</span></span>
+                <div className="p-4 bg-[#090909] border border-[#1a1a1a] rounded-xl flex flex-col justify-between hover:border-neutral-700 transition-colors">
+                  <span className="text-[10px] text-neutral-500 uppercase tracking-widest">📦 Repositories</span>
+                  <span className="text-2xl font-bold text-white mt-2">{repositories.length}</span>
+                </div>
+                <div className="p-4 bg-[#090909] border border-[#1a1a1a] rounded-xl flex flex-col justify-between hover:border-neutral-700 transition-colors">
+                  <span className="text-[10px] text-neutral-500 uppercase tracking-widest">🔥 Streak</span>
+                  <span className="text-2xl font-bold text-white mt-2">{stats.streak} days</span>
+                </div>
+                <div className="p-4 bg-[#090909] border border-[#1a1a1a] rounded-xl flex flex-col justify-between hover:border-neutral-700 transition-colors">
+                  <span className="text-[10px] text-neutral-500 uppercase tracking-widest">🧠 AI Score</span>
+                  <span className="text-2xl font-bold text-[#9FE870] mt-2">{stats.aiScore}%</span>
                 </div>
               </div>
             </div>
 
-            {/* Repositories Scroll List */}
-            <div className="p-6 overflow-y-auto max-h-[500px] flex-1 space-y-4 pr-3">
-              {repositories.length === 0 ? (
-                <div className="text-zinc-600 text-sm italic py-12 text-center">
-                  No source repositories found for this account.
-                </div>
-              ) : (
-                repositories.map((repo, idx) => (
-                  <motion.div
-                    key={repo.id}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.04, duration: 0.2 }}
-                    className="border border-zinc-800 hover:border-zinc-700/80 rounded bg-zinc-950/20 p-4 transition-colors relative group"
-                  >
-                    {/* Header: Title and URL link */}
-                    <div className="flex items-start justify-between">
-                      <a
-                        href={repo.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-sm font-bold text-zinc-200 hover:text-emerald-400 transition-colors flex items-center space-x-1.5"
-                      >
-                        <span>{repo.name}</span>
-                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </a>
-                      <span className="text-[10px] text-zinc-600 uppercase font-bold">
-                        {formatDate(repo.updatedAt)}
-                      </span>
-                    </div>
-
-                    {/* Body: Description */}
-                    <p className="text-xs text-zinc-400 mt-2 line-clamp-2 leading-relaxed">
-                      {repo.description}
-                    </p>
-
-                    {/* Footer: Repo Language + Star + Fork */}
-                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-zinc-900 text-[10px] text-zinc-500 font-semibold select-none">
-                      <div className="flex items-center space-x-3">
+            {/* SECTION 2 - Repository List */}
+            <div className="space-y-3">
+              <span className="text-[10px] text-neutral-500 uppercase tracking-widest block select-none">Repositories</span>
+              <div className="border border-[#1a1a1a] bg-[#090909] rounded-xl divide-y divide-[#1a1a1a] overflow-hidden">
+                {repositories.length === 0 ? (
+                  <div className="text-neutral-600 text-xs italic py-10 text-center select-none">
+                    No source repositories found for this account.
+                  </div>
+                ) : (
+                  repositories.slice(0, 5).map((repo, idx) => (
+                    <motion.div
+                      key={repo.id}
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.03, duration: 0.2 }}
+                      className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-[#0c0c0c] transition-colors"
+                    >
+                      <div className="space-y-1 flex-1">
+                        <a 
+                          href={repo.url} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="text-xs font-bold text-white hover:text-[#9FE870] transition-colors"
+                        >
+                          {repo.name}
+                        </a>
+                        <p className="text-[11px] text-neutral-500 line-clamp-1 max-w-lg m-0 font-sans leading-tight">
+                          {repo.description}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-4 text-[10px] text-neutral-500 shrink-0 font-mono select-none">
                         {repo.language && (
-                          <div className="flex items-center space-x-1">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500/80" />
-                            <span>{repo.language.toUpperCase()}</span>
+                          <div className="flex items-center space-x-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#9FE870]" />
+                            <span className="text-neutral-400 font-semibold">{repo.language}</span>
                           </div>
                         )}
-                      </div>
-
-                      <div className="flex items-center space-x-3">
                         <div className="flex items-center space-x-0.5">
-                          <Star className="w-3 h-3 text-zinc-600" />
+                          <Star className="w-3 h-3 text-neutral-600" />
                           <span>{repo.stars}</span>
                         </div>
                         <div className="flex items-center space-x-0.5">
-                          <GitFork className="w-3 h-3 text-zinc-600" />
+                          <GitFork className="w-3 h-3 text-neutral-600" />
                           <span>{repo.forks}</span>
                         </div>
+                        <span>{formatDate(repo.updatedAt)}</span>
                       </div>
-                    </div>
-                  </motion.div>
-                ))
-              )}
+                    </motion.div>
+                  ))
+                )}
+              </div>
             </div>
+
+            {/* SECTION 3 - Activity Heatmap */}
+            <div className="space-y-3">
+              <span className="text-[10px] text-neutral-500 uppercase tracking-widest block select-none">Activity Heatmap</span>
+              {renderHeatmap()}
+            </div>
+
+            {/* SECTION 4 - AI Summary */}
+            <div className="space-y-3">
+              <span className="text-[10px] text-neutral-500 uppercase tracking-widest block select-none">AI Summary</span>
+              <div className="p-5 bg-[#090909] border border-[#1a1a1a] rounded-xl font-mono text-xs text-[#9FE870] space-y-1.5">
+                {finalSummary.map((line, idx) => (
+                  <p key={idx} className="m-0">{`> ${line}`}</p>
+                ))}
+              </div>
+            </div>
+
+            {/* SECTION 5 - Developer Archetype */}
+            <div className="space-y-3">
+              <span className="text-[10px] text-neutral-500 uppercase tracking-widest block select-none">Developer Archetype</span>
+              <div className="p-6 bg-[#090909] border border-[#1a1a1a] rounded-xl flex items-center space-x-6 hover:border-neutral-700 transition-colors">
+                <div className="shrink-0 p-3 bg-[#0d0d0d] border border-[#1a1a1a] rounded-xl select-none">
+                  {renderArchetypeIllustration(finalArchetype)}
+                </div>
+                <div className="space-y-1">
+                  <h2 className="text-xs font-bold text-white uppercase tracking-wider m-0 select-none">{finalArchetype}</h2>
+                  <p className="text-[11px] text-neutral-500 font-sans m-0 leading-relaxed">{finalArchetypeSentence}</p>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 
-        {/* Status Line Bar */}
-        <div className="px-6 py-3 bg-zinc-950 border-t border-zinc-800/50 flex justify-between text-[10px] text-zinc-600">
-          <span>COMPILED SESSION: ACTIVE</span>
-          <span>LANGS: {stats.topLanguages.slice(0, 3).map(l => l.language.toUpperCase()).join(' / ') || 'NONE'}</span>
-          <span>SYS_OK</span>
+        {/* BOTTOM STATUS BAR */}
+        <div className="px-6 py-2.5 bg-[#090909] border-t border-[#1a1a1a] flex justify-between text-[9px] text-neutral-500 tracking-widest uppercase select-none font-mono">
+          <div className="flex items-center space-x-4">
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#9FE870]" />
+              connected
+            </span>
+            <span>github api</span>
+            <span>gemini ready</span>
+          </div>
+          <span>v1.0</span>
         </div>
+
       </div>
     </main>
   );

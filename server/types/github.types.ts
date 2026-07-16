@@ -49,10 +49,15 @@ export interface DevWrapStats {
   totalStars: number;
   totalForks: number;
   topLanguages: Array<{ language: string; count: number; percentage: number }>;
+  streak: number;
+  aiScore: number;
 }
 
 export interface DevWrapResult {
   profile: DevWrapProfile;
   repositories: DevWrapRepo[];
   stats: DevWrapStats;
+  aiSummary?: string[];
+  archetype?: string;
+  archetypeSentence?: string;
 }
