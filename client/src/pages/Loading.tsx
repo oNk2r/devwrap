@@ -57,6 +57,7 @@ export default function Loading() {
             profile: payload.profile,
             repositories: payload.repositories,
             stats: payload.stats,
+            heatmap: payload.heatmap,
             aiSummary: payload.aiSummary,
             archetype: payload.archetype,
             archetypeSentence: payload.archetypeSentence
@@ -111,7 +112,7 @@ export default function Loading() {
       setProfileData(fetchedData);
       
       const timeout = setTimeout(() => {
-        navigate(`/user/${encodeURIComponent(username || '')}`);
+        navigate(`/user/${encodeURIComponent(username || '')}`, { replace: true });
       }, 500);
 
       return () => clearTimeout(timeout);

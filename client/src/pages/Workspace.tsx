@@ -7,12 +7,15 @@ import useProfileStore from '../store/profileStore';
 export default function Workspace() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
-  const { profileData, setUsername, reset } = useProfileStore();
+  const { profileData, setUsername } = useProfileStore();
 
   useEffect(() => {
-    if (!profileData && username) {
-      setUsername(username);
-      navigate('/loading');
+    const profileUsername = profileData?.profile?.username?.toLowerCase();
+    const urlUsername = username?.toLowerCase();
+
+    if (urlUsername && (!profileData || profileUsername !== urlUsername)) {
+      setUsername(username || null);
+      navigate('/loading', { replace: true });
     }
   }, [profileData, username, setUsername, navigate]);
 
@@ -31,7 +34,6 @@ export default function Workspace() {
   const { profile, repositories, stats } = profileData;
 
   const handleBack = () => {
-    reset();
     navigate('/');
   };
 
@@ -81,17 +83,47 @@ export default function Workspace() {
     const cols = 35;
     const rows = 7;
     const totalCells = cols * rows;
-    const cells: number[] = [];
-    
-    for (let i = 0; i < totalCells; i++) {
-      let level = 0;
-      const rand = Math.sin(i * 0.15) + Math.cos(i * 0.05);
-      if (rand > 1.2) level = 3;
-      else if (rand > 0.6) level = 2;
-      else if (rand > 0.0) level = 1;
-      else level = 0;
-      cells.push(level);
+    const cells: { count: number; level: number; date?: string }[] = [];
+
+    if (profileData.heatmap && profileData.heatmap.length > 0) {
+      const actualData = profileData.heatmap;
+      const startIdx = Math.max(0, actualData.length - totalCells);
+      const sliced = actualData.slice(startIdx);
+      
+      const padCount = totalCells - sliced.length;
+      for (let i = 0; i < padCount; i++) {
+        cells.push({ count: 0, level: 0 });
+      }
+      
+      sliced.forEach(day => {
+        cells.push({ count: day.count, level: day.level, date: day.date });
+      });
+    } else {
+      // Fallback dummy data
+      for (let i = 0; i < totalCells; i++) {
+        let level = 0;
+        const rand = Math.sin(i * 0.15) + Math.cos(i * 0.05);
+        if (rand > 1.2) level = 3;
+        else if (rand > 0.6) level = 2;
+        else if (rand > 0.0) level = 1;
+        else level = 0;
+        cells.push({ count: level > 0 ? level * 2 : 0, level });
+      }
     }
+
+    const formatDateTooltip = (dateStr?: string) => {
+      if (!dateStr) return '';
+      try {
+        return new Date(dateStr).toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      } catch {
+        return dateStr;
+      }
+    };
 
     return (
       <div className="flex flex-col items-center justify-center p-6 bg-[#0c0c0c] border border-[#1a1a1a] rounded-xl space-y-4 w-full">
@@ -100,16 +132,24 @@ export default function Workspace() {
             <div key={colIdx} className="flex flex-col space-y-1">
               {Array.from({ length: rows }).map((_, rowIdx) => {
                 const cellIdx = colIdx * rows + rowIdx;
-                const level = cells[cellIdx];
-                let bgClass = "bg-[#141414]";
-                if (level === 1) bgClass = "bg-[#223912]";
-                if (level === 2) bgClass = "bg-[#38661d]";
-                if (level === 3) bgClass = "bg-[#9FE870]";
+                const cell = cells[cellIdx] || { count: 0, level: 0 };
+                const level = cell.level;
                 
+                let bgClass = "bg-[#141414]";
+                if (level === 1) bgClass = "bg-[#1b3311]";
+                if (level === 2) bgClass = "bg-[#284e17]";
+                if (level === 3) bgClass = "bg-[#458525]";
+                if (level >= 4) bgClass = "bg-[#9FE870]";
+                
+                const tooltipText = cell.date
+                  ? `${cell.count} contributions on ${formatDateTooltip(cell.date)}`
+                  : 'No contribution data';
+
                 return (
                   <div 
                     key={rowIdx} 
-                    className={`w-2.5 h-2.5 rounded-sm ${bgClass} transition-colors duration-200 hover:border hover:border-neutral-500`}
+                    title={tooltipText}
+                    className={`w-2.5 h-2.5 rounded-sm ${bgClass} transition-colors duration-200 hover:border hover:border-neutral-500 cursor-help`}
                   />
                 );
               })}
@@ -118,10 +158,11 @@ export default function Workspace() {
         </div>
         <div className="flex items-center space-x-2 text-[9px] text-neutral-500 self-end pr-2 font-mono select-none">
           <span>Less</span>
-          <div className="w-2.5 h-2.5 rounded-sm bg-[#141414]" />
-          <div className="w-2.5 h-2.5 rounded-sm bg-[#223912]" />
-          <div className="w-2.5 h-2.5 rounded-sm bg-[#38661d]" />
-          <div className="w-2.5 h-2.5 rounded-sm bg-[#9FE870]" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-[#141414]" title="0 contributions" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-[#1b3311]" title="1-2 contributions" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-[#284e17]" title="3-4 contributions" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-[#458525]" title="5-6 contributions" />
+          <div className="w-2.5 h-2.5 rounded-sm bg-[#9FE870]" title="7+ contributions" />
           <span>More</span>
         </div>
       </div>

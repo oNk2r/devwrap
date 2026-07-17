@@ -52,6 +52,18 @@ export class GitHubService {
       throw error;
     }
   }
+
+  async fetchContributions(username: string): Promise<any> {
+    try {
+      const response = await axios.get(
+        `https://github-contributions-api.jogruber.de/v4/${encodeURIComponent(username)}?y=last`
+      );
+      return response.data;
+    } catch (error: any) {
+      console.warn(`Warning: Failed to fetch contributions for ${username}:`, error.message || error);
+      return null;
+    }
+  }
 }
 
 export const githubService = new GitHubService();

@@ -57,6 +57,17 @@ export class GitHubController {
       sendLog(`✓ found ${rawRepos.length} public repositories`);
       await delay(400);
 
+      // Fetch contributions
+      sendLog(`compiling commit activity heatmap...`);
+      const contributionsData = await githubService.fetchContributions(username);
+      const heatmap = contributionsData?.contributions || [];
+      if (heatmap.length > 0) {
+        sendLog(`✓ loaded contribution calendar data`);
+      } else {
+        sendLog(`⚠ contribution data unavailable, generating mock pattern`);
+      }
+      await delay(400);
+
       // 4. Run analytics and compile statistics
       sendLog(`collecting metadata & aggregating stats...`);
       const processedResult = analyticsService.analyze(rawProfile, rawRepos);
@@ -82,6 +93,7 @@ export class GitHubController {
       // 5. Send completed result
       sendData({
         ...processedResult,
+        heatmap,
         aiSummary: geminiResult.summary,
         archetype: geminiResult.archetype,
         archetypeSentence: geminiResult.archetypeSentence

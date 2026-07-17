@@ -53,10 +53,17 @@ export interface DevWrapStats {
   aiScore: number;
 }
 
+export interface ContributionDay {
+  date: string;
+  count: number;
+  level: number;
+}
+
 export interface DevWrapResult {
   profile: DevWrapProfile;
   repositories: DevWrapRepo[];
   stats: DevWrapStats;
+  heatmap?: ContributionDay[];
   aiSummary?: string[];
   archetype?: string;
   archetypeSentence?: string;

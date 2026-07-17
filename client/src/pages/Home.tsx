@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import useProfileStore from '../store/profileStore';
@@ -8,6 +8,10 @@ export default function Home() {
   const setUsername = useProfileStore((state) => state.setUsername);
   const resetStore = useProfileStore((state) => state.reset);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    resetStore();
+  }, [resetStore]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
