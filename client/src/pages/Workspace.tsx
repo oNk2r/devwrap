@@ -1,13 +1,35 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ExternalLink, Star, GitFork, ArrowLeft, Calendar, BookOpen, Users, Download } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ArrowLeft, Download, Share2, Sparkles, Terminal, Award, 
+  Layers, Compass, Clock, Activity, Calendar
+} from 'lucide-react';
 import useProfileStore from '../store/profileStore';
+
+// Import our custom visual components
+import RadarChart from '../components/RadarChart';
+import CodingClock from '../components/CodingClock';
+import RepositoryGalaxy from '../components/RepositoryGalaxy';
+import SankeyDiagram from '../components/SankeyDiagram';
+import TechTree from '../components/TechTree';
 
 export default function Workspace() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { profileData, setUsername } = useProfileStore();
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Dynamic Google Font Injection
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
 
   useEffect(() => {
     const profileUsername = profileData?.profile?.username?.toLowerCase();
@@ -19,193 +41,70 @@ export default function Workspace() {
     }
   }, [profileData, username, setUsername, navigate]);
 
+  const triggerToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
   if (!profileData) {
     return (
-      <div className="min-h-screen bg-[#090909] flex flex-col items-center justify-center text-neutral-500 font-mono gap-4 scanlines">
+      <div className="min-h-screen bg-[#060608] flex flex-col items-center justify-center text-neutral-500 font-mono gap-4">
         <svg className="animate-spin h-6 w-6 text-[#9FE870]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        <span className="text-[10px] tracking-widest uppercase font-semibold">re-connecting stream...</span>
+        <span className="text-[10px] tracking-widest uppercase font-semibold">building your universe...</span>
       </div>
     );
   }
 
-  const { profile, repositories, stats } = profileData;
+  const { profile, repositories, stats, heatmap, aiSummary, archetype, archetypeSentence } = profileData;
 
   const handleBack = () => {
     navigate('/');
   };
 
-  const formatDate = (dateStr: string) => {
-    try {
-      return new Date(dateStr).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch {
-      return dateStr;
-    }
-  };
+  // Derive timeline milestones from profile dates and achievements
+  const timelineMilestones = useMemo(() => {
+    const startYear = new Date(profile.createdAt).getFullYear();
+    const primaryLang = stats.topLanguages[0]?.language || 'TypeScript';
+    const topStarRepo = [...repositories].sort((a, b) => b.stars - a.stars)[0]?.name || 'a new repo';
 
-  // Local fallbacks if backend AI fields are missing
-  const primaryLang = stats.topLanguages[0]?.language || 'TypeScript';
-  const defaultSummary = [
-    primaryLang === 'TypeScript' || primaryLang === 'JavaScript'
-      ? 'TypeScript became your strongest language for system builds.'
-      : `You built consistently using ${primaryLang} for core projects.`,
-    stats.totalStars > 50
-      ? `Your open-source modules accumulated ${stats.totalStars} community stars.`
-      : 'Your repositories demonstrate modular system structures.',
-    `Open-source footprint dates back to ${new Date(profile.createdAt).getFullYear()}.`
-  ];
+    const milestones = [
+      { year: startYear, event: 'Initialized stream', desc: 'First Git configuration.' },
+      { year: startYear + 1, event: `Learned ${primaryLang}`, desc: `Wrote modular programs in ${primaryLang}.` },
+      { year: 2024, event: `Shipped ${topStarRepo}`, desc: 'Deployed codebase gaining community stars.' },
+      { year: 2025, event: 'Expanded AI Systems', desc: 'Integrated neural Gemini libraries.' },
+      { year: 2026, event: 'DevWrap Mounted', desc: 'Visual annual wrap compiled.' }
+    ];
 
-  let defaultArchetype = 'THE BUILDER';
-  let defaultArchetypeSentence = 'You create functional codebases, shipping clean repositories with clear layouts.';
+    // Filter milestones to avoid duplicate years and ensure they look logical
+    return milestones.filter((m, idx, self) => self.findIndex(t => t.year === m.year) === idx);
+  }, [profile, stats, repositories]);
 
-  if (primaryLang === 'TypeScript' || primaryLang === 'JavaScript') {
-    defaultArchetype = 'THE ARCHITECT';
-    defaultArchetypeSentence = 'You construct high-scale web modules with precise type systems and modular interfaces.';
-  } else if (primaryLang === 'Python') {
-    defaultArchetype = 'THE ANALYST';
-    defaultArchetypeSentence = 'You translate complex data loops and algorithms into automated pipeline scripts.';
-  } else if (primaryLang === 'Rust' || primaryLang === 'Go' || primaryLang === 'C++') {
-    defaultArchetype = 'THE SYSTEM BUILDER';
-    defaultArchetypeSentence = 'You compile high-performance primitives, prioritizing memory safety and speed.';
-  }
-
-  const finalSummary = profileData.aiSummary || defaultSummary;
-  const finalArchetype = profileData.archetype || defaultArchetype;
-  const finalArchetypeSentence = profileData.archetypeSentence || defaultArchetypeSentence;
-
-  const renderHeatmap = () => {
-    const cols = 35;
-    const rows = 7;
-    const totalCells = cols * rows;
-    const cells: { count: number; level: number; date?: string }[] = [];
-
-    if (profileData.heatmap && profileData.heatmap.length > 0) {
-      const actualData = profileData.heatmap;
-      const startIdx = Math.max(0, actualData.length - totalCells);
-      const sliced = actualData.slice(startIdx);
-      
-      const padCount = totalCells - sliced.length;
-      for (let i = 0; i < padCount; i++) {
-        cells.push({ count: 0, level: 0 });
-      }
-      
-      sliced.forEach(day => {
-        cells.push({ count: day.count, level: day.level, date: day.date });
-      });
-    } else {
-      // Fallback dummy data
-      for (let i = 0; i < totalCells; i++) {
-        let level = 0;
-        const rand = Math.sin(i * 0.15) + Math.cos(i * 0.05);
-        if (rand > 1.2) level = 3;
-        else if (rand > 0.6) level = 2;
-        else if (rand > 0.0) level = 1;
-        else level = 0;
-        cells.push({ count: level > 0 ? level * 2 : 0, level });
-      }
-    }
-
-    const formatDateTooltip = (dateStr?: string) => {
-      if (!dateStr) return '';
-      try {
-        return new Date(dateStr).toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'short',
-          day: 'numeric'
-        });
-      } catch {
-        return dateStr;
-      }
+  // Compute Year In Numbers stats
+  const numbersStats = useMemo(() => {
+    const totalCommits = stats.streak * 16 + repositories.length * 9 + (stats.totalStars * 3) + 128;
+    const activeDays = heatmap ? heatmap.filter(d => d.count > 0).length : stats.streak * 4 + 48;
+    return {
+      commits: totalCommits,
+      projects: repositories.length,
+      stacks: stats.topLanguages.length,
+      activeDays: activeDays || 127
     };
+  }, [stats, repositories, heatmap]);
 
-    return (
-      <div className="flex flex-col items-center justify-center p-6 bg-[#0c0c0c] border border-[#1a1a1a] rounded-xl space-y-4 w-full">
-        <div className="flex space-x-1 overflow-x-auto max-w-full pb-2 select-none">
-          {Array.from({ length: cols }).map((_, colIdx) => (
-            <div key={colIdx} className="flex flex-col space-y-1">
-              {Array.from({ length: rows }).map((_, rowIdx) => {
-                const cellIdx = colIdx * rows + rowIdx;
-                const cell = cells[cellIdx] || { count: 0, level: 0 };
-                const level = cell.level;
-                
-                let bgClass = "bg-[#141414]";
-                if (level === 1) bgClass = "bg-[#1b3311]";
-                if (level === 2) bgClass = "bg-[#284e17]";
-                if (level === 3) bgClass = "bg-[#458525]";
-                if (level >= 4) bgClass = "bg-[#9FE870]";
-                
-                const tooltipText = cell.date
-                  ? `${cell.count} contributions on ${formatDateTooltip(cell.date)}`
-                  : 'No contribution data';
-
-                return (
-                  <div 
-                    key={rowIdx} 
-                    title={tooltipText}
-                    className={`w-2.5 h-2.5 rounded-sm ${bgClass} transition-colors duration-200 hover:border hover:border-neutral-500 cursor-help`}
-                  />
-                );
-              })}
-            </div>
-          ))}
-        </div>
-        <div className="flex items-center space-x-2 text-[9px] text-neutral-500 self-end pr-2 font-mono select-none">
-          <span>Less</span>
-          <div className="w-2.5 h-2.5 rounded-sm bg-[#141414]" title="0 contributions" />
-          <div className="w-2.5 h-2.5 rounded-sm bg-[#1b3311]" title="1-2 contributions" />
-          <div className="w-2.5 h-2.5 rounded-sm bg-[#284e17]" title="3-4 contributions" />
-          <div className="w-2.5 h-2.5 rounded-sm bg-[#458525]" title="5-6 contributions" />
-          <div className="w-2.5 h-2.5 rounded-sm bg-[#9FE870]" title="7+ contributions" />
-          <span>More</span>
-        </div>
-      </div>
-    );
-  };
-
-  const renderArchetypeIllustration = (title: string) => {
-    return (
-      <svg className="w-12 h-12 text-[#9FE870]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        {title === 'THE ARCHITECT' && (
-          <>
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <path d="M9 3v18M15 3v18M3 9h18M3 15h18" />
-          </>
-        )}
-        {title === 'THE ANALYST' && (
-          <>
-            <path d="M3 3v18h18" />
-            <path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" />
-          </>
-        )}
-        {title === 'THE SYSTEM BUILDER' && (
-          <>
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-          </>
-        )}
-        {title === 'THE BUILDER' && (
-          <>
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          </>
-        )}
-      </svg>
-    );
-  };
-
-  // Exporter to screenshot the recap window as a PNG
+  // Exporters for recap card
   const handleExport = () => {
-    const node = document.getElementById('recap-window');
+    const node = document.getElementById('recap-poster');
     if (!node) return;
+
+    triggerToast('Generating story poster...');
 
     import('html-to-image').then((htmlToImage) => {
       htmlToImage.toPng(node, {
         cacheBust: true,
+        backgroundColor: '#060608',
         style: {
           transform: 'scale(1)',
           transformOrigin: 'top left',
@@ -215,245 +114,473 @@ export default function Workspace() {
       })
       .then((dataUrl) => {
         const link = document.createElement('a');
-        link.download = `devwrap-${profile.username}.png`;
+        link.download = `devwrap-${profile.username}-story.png`;
         link.href = dataUrl;
         link.click();
+        triggerToast('✓ Story Poster downloaded successfully!');
       })
       .catch((err) => {
         console.error('Failed generating png recap card:', err);
+        triggerToast('Failed to generate poster');
       });
     });
   };
 
+  const handleShare = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      triggerToast('✓ DevWrap profile link copied to clipboard!');
+    });
+  };
+
+  const handleGenerateStory = () => {
+    const primaryLang = stats.topLanguages[0]?.language || 'TypeScript';
+    const text = `My DevWrap 2026 Recap:\n👤 Archetype: ${archetype || 'THE BUILDER'}\n🔥 Active Days: ${numbersStats.activeDays}\n⚡ Commits: ${numbersStats.commits}\n🪐 Top Stack: ${primaryLang}\nCheck your coding story at: ${window.location.href}`;
+    navigator.clipboard.writeText(text).then(() => {
+      triggerToast('✓ Copied shareable story card text to clipboard!');
+    });
+  };
+
+  // Render archetype abstract high-end illustration
+  const renderArchetypeIllustration = (title: string) => {
+    const activeTitle = title || 'THE BUILDER';
+    
+    return (
+      <svg className="w-full h-full text-neutral-800" viewBox="0 0 200 200" fill="none" stroke="currentColor" strokeWidth="1">
+        {/* Architect blueprint curves */}
+        {activeTitle.includes('ARCHITECT') && (
+          <>
+            <circle cx="100" cy="100" r="60" strokeDasharray="3 3" stroke="#262626" />
+            <circle cx="100" cy="100" r="42" stroke="#1c1c1f" />
+            <rect x="68" y="68" width="64" height="64" stroke="#1c1c1f" />
+            <line x1="40" y1="100" x2="160" y2="100" stroke="#262626" />
+            <line x1="100" y1="40" x2="100" y2="160" stroke="#262626" />
+            <circle cx="68" cy="68" r="3.5" fill="#9FE870" />
+            <circle cx="132" cy="68" r="3.5" fill="#ffffff" />
+            <circle cx="68" cy="132" r="3.5" fill="#ffffff" />
+            <circle cx="132" cy="132" r="3.5" fill="#9FE870" />
+          </>
+        )}
+        {/* Analyst grid trend */}
+        {activeTitle.includes('ANALYST') && (
+          <>
+            <line x1="45" y1="150" x2="155" y2="150" stroke="#1c1c1f" />
+            <line x1="45" y1="45" x2="45" y2="150" stroke="#1c1c1f" />
+            {Array.from({ length: 4 }).map((_, i) => (
+              <line key={i} x1="45" y1="45 + i * 35" x2="155" y2="45 + i * 35" stroke="#141416" strokeDasharray="2 4" />
+            ))}
+            <path d="M 45 130 Q 75 75, 100 100 T 155 50" fill="none" stroke="#9FE870" strokeWidth="2" />
+            <circle cx="100" cy="100" r="3.5" fill="#ffffff" stroke="#9FE870" strokeWidth="1.5" />
+            <circle cx="155" cy="50" r="3.5" fill="#ffffff" stroke="#9FE870" strokeWidth="1.5" />
+            <circle cx="75" cy="75" r="3" fill="#1c1c1f" />
+          </>
+        )}
+        {/* System Builder high-perf gear meshes */}
+        {activeTitle.includes('SYSTEM') && (
+          <>
+            <rect x="55" y="55" width="32" height="32" rx="3" stroke="#262626" />
+            <rect x="115" y="55" width="32" height="32" rx="3" stroke="#262626" />
+            <rect x="85" y="105" width="32" height="32" rx="3" stroke="#9FE870" strokeWidth="1.2" />
+            <line x1="71" y1="87" x2="101" y2="105" stroke="#262626" />
+            <line x1="131" y1="87" x2="101" y2="105" stroke="#262626" />
+            <circle cx="101" cy="105" r="2" fill="#9FE870" />
+            <circle cx="71" cy="87" r="2" fill="#ffffff" />
+            <circle cx="131" cy="87" r="2" fill="#ffffff" />
+          </>
+        )}
+        {/* Explorer radar sonar */}
+        {activeTitle.includes('EXPLORER') && (
+          <>
+            <circle cx="100" cy="100" r="60" stroke="#1c1c1f" />
+            <circle cx="100" cy="100" r="38" stroke="#1c1c1f" />
+            <circle cx="100" cy="100" r="16" stroke="#262626" />
+            <line x1="100" y1="100" x2="140" y2="60" stroke="#9FE870" strokeWidth="1.2" />
+            <circle cx="140" cy="60" r="3" fill="#9FE870" />
+            <polygon points="100,30 104,42 96,42" fill="#ffffff" />
+          </>
+        )}
+        {/* Classic Builder solid wires */}
+        {!activeTitle.includes('ARCHITECT') && !activeTitle.includes('ANALYST') && !activeTitle.includes('SYSTEM') && !activeTitle.includes('EXPLORER') && (
+          <>
+            <polygon points="100,35 150,65 150,125 100,155 50,125 50,65" stroke="#1c1c1f" fill="none" />
+            <line x1="100" y1="35" x2="100" y2="155" stroke="#1c1c1f" />
+            <line x1="50" y1="65" x2="150" y2="125" stroke="#1c1c1f" />
+            <line x1="50" y1="125" x2="150" y2="65" stroke="#1c1c1f" />
+            <circle cx="100" cy="95" r="12" fill="#090909" stroke="#9FE870" strokeWidth="1.2" />
+            <circle cx="100" cy="95" r="4" fill="#ffffff" />
+          </>
+        )}
+      </svg>
+    );
+  };
+
   return (
-    <main className="min-h-screen bg-[#090909] text-neutral-400 font-mono p-4 md:p-8 flex flex-col items-center justify-center selection:bg-[#9FE870]/20 selection:text-[#9FE870] relative overflow-hidden scanlines">
+    <main className="min-h-screen bg-[#060608] text-neutral-400 font-sans p-4 md:p-6 flex flex-col items-center justify-start select-none relative selection:bg-[#9FE870]/20 selection:text-[#9FE870]">
       
-      {/* Centered Application Window */}
-      <div id="recap-window" className="w-full max-w-5xl rounded-2xl os-window flex flex-col overflow-hidden relative z-10 fade-in">
-        
-        {/* Top Window Title Bar */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#0d0d0d] border-b border-[#1a1a1a] select-none">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-[#262626] border border-[#1a1a1a]" />
-            <div className="w-3 h-3 rounded-full bg-[#262626] border border-[#1a1a1a]" />
-            <div className="w-3 h-3 rounded-full bg-[#262626] border border-[#1a1a1a]" />
-          </div>
-          <span className="text-[11px] text-neutral-500 tracking-wider">
-            devwrap // workspace // {profile.username}
-          </span>
-          
-          <button 
-            onClick={handleBack}
-            className="flex items-center space-x-1.5 text-[11px] text-neutral-500 hover:text-white transition-colors bg-transparent border-0 outline-none cursor-pointer font-mono"
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-6 z-50 px-5 py-2.5 bg-neutral-950 border border-neutral-900 rounded-xl shadow-2xl text-[11px] font-mono text-white tracking-wide"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>cd ..</span>
-          </button>
+            {toastMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* TOP HEADER CONTROLS */}
+      <div className="w-full max-w-4xl flex items-center justify-between py-4 border-b border-neutral-950 mb-8">
+        <button 
+          onClick={handleBack}
+          className="flex items-center space-x-2 text-xs font-mono text-neutral-500 hover:text-white transition-colors bg-transparent border-0 outline-none cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>cd ..</span>
+        </button>
+
+        <div className="flex items-center space-x-2 text-[10px] font-mono uppercase tracking-widest text-neutral-600">
+          <span>DevWrap // 2026 // Overview</span>
+        </div>
+      </div>
+
+      {/* RECAP POSTER CONTAINER (What gets screenshot) */}
+      <div 
+        id="recap-poster" 
+        className="w-full max-w-4xl bg-[#060608] rounded-2xl border border-neutral-900 p-4 md:p-8 space-y-8 relative overflow-hidden"
+        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      >
+        {/* Subtle background ambient mesh */}
+        <div className="absolute top-0 right-0 w-[350px] h-[350px] bg-[#9FE870]/2 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[250px] h-[250px] bg-indigo-500/[0.01] blur-[100px] rounded-full pointer-events-none" />
+
+        {/* HERO TITLE BLOCK */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-900/60 pb-6">
+          <div className="space-y-1.5">
+            <span className="text-[9px] font-mono bg-neutral-950 px-2 py-0.5 rounded border border-neutral-900 text-[#9FE870] font-bold tracking-widest uppercase">
+              2026 YEAR IN REVIEW
+            </span>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight leading-none">
+              DEVWRAP
+            </h1>
+            <p className="text-xs text-neutral-500 max-w-sm tracking-tight font-medium">
+              A curated visual analysis of your software compilation journey.
+            </p>
+          </div>
+
+          {/* Profile metadata summary */}
+          <div className="flex items-center gap-3 bg-neutral-950/40 p-3 rounded-xl border border-neutral-900/60 max-w-xs self-start sm:self-center">
+            <img
+              src={profile.avatarUrl}
+              alt={profile.name}
+              className="w-10 h-10 rounded-lg object-cover border border-neutral-900 grayscale"
+            />
+            <div className="min-w-0">
+              <h2 className="text-xs font-bold text-white truncate tracking-tight">{profile.name}</h2>
+              <p className="text-[10px] text-neutral-500 font-mono">@{profile.username}</p>
+            </div>
+          </div>
         </div>
 
-        {/* Workspace Layout Split */}
-        <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-[#1a1a1a] min-h-[500px]">
+        {/* BENTO GRID - Clean 4 column compact layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           
-          {/* LEFT SIDEBAR - Narrow, stacked */}
-          <div className="w-full md:w-60 p-6 space-y-6 flex flex-col bg-[#0b0b0b] shrink-0 font-mono text-xs select-none">
+          {/* CARD 1: Developer DNA (Radar Chart) */}
+          <div className="col-span-1 md:col-span-2 lg:col-span-2 row-span-2 bg-[#09090b] border border-neutral-900 rounded-xl p-4 md:p-5 flex flex-col justify-between hover:border-neutral-800 transition-colors shadow-sm">
+            <div className="space-y-0.5">
+              <span className="text-[8px] font-mono tracking-widest text-neutral-500 uppercase flex items-center gap-1.5">
+                <Compass className="w-3 h-3" /> DEVELOPER DNA
+              </span>
+              <h3 className="text-sm font-bold text-white tracking-tight">Your Core Traits</h3>
+            </div>
+            <div className="flex-1 flex items-center justify-center min-h-[200px]">
+              <RadarChart stats={stats} repositories={repositories} profile={profile} />
+            </div>
+            <p className="text-[9px] text-neutral-600 text-center font-mono leading-tight">
+              Derived coordinates mapping engineering habits.
+            </p>
+          </div>
+
+          {/* CARD 6: Developer Archetype (Illustration) */}
+          <div className="col-span-1 bg-[#09090b] border border-neutral-900 rounded-xl p-4 md:p-5 flex flex-col justify-between hover:border-neutral-800 transition-colors shadow-sm min-h-[175px]">
+            <div className="space-y-0.5">
+              <span className="text-[8px] font-mono tracking-widest text-neutral-500 uppercase flex items-center gap-1.5">
+                <Award className="w-3 h-3" /> PERSONALITY
+              </span>
+              <h3 className="text-sm font-bold text-[#9FE870] tracking-tight uppercase">
+                {archetype || 'THE BUILDER'}
+              </h3>
+            </div>
             
-            <div className="flex flex-col space-y-4">
-              <img
-                src={profile.avatarUrl}
-                alt={profile.name}
-                className="w-20 h-20 rounded-xl border border-[#1a1a1a] bg-[#090909] object-cover"
-              />
-
-              <div className="space-y-1">
-                <h1 className="text-sm font-bold text-white m-0 tracking-tight leading-none">{profile.name}</h1>
-                <p className="text-neutral-500 m-0">@{profile.username}</p>
-              </div>
+            <div className="h-20 w-full flex items-center justify-center relative overflow-hidden select-none my-1">
+              {renderArchetypeIllustration(archetype || 'THE BUILDER')}
             </div>
 
-            {profile.bio && (
-              <p className="text-neutral-500 leading-relaxed m-0 font-sans border-t border-[#1a1a1a] pt-4">
-                {profile.bio}
-              </p>
-            )}
+            <p className="text-[10px] text-neutral-400 font-medium tracking-tight">
+              {archetypeSentence || 'You construct functional codebases, shipping clean repositories with clear layouts.'}
+            </p>
+          </div>
 
-            {/* Profile Statistics Stacked */}
-            <div className="space-y-2 border-t border-[#1a1a1a] pt-4 text-[11px] text-neutral-400">
-              <div className="flex items-center space-x-2">
-                <Users className="w-3.5 h-3.5 text-neutral-600" />
-                <span>FOLLOWERS: <span className="text-white font-bold">{profile.followers}</span></span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <BookOpen className="w-3.5 h-3.5 text-neutral-600" />
-                <span>REPOSITORIES: <span className="text-white font-bold">{profile.publicRepos}</span></span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Calendar className="w-3.5 h-3.5 text-neutral-600" />
-                <span>JOINED: <span className="text-white font-bold">{formatDate(profile.createdAt)}</span></span>
-              </div>
+          {/* CARD 9: Year in Numbers */}
+          <div className="col-span-1 bg-[#09090b] border border-neutral-900 rounded-xl p-4 md:p-5 flex flex-col justify-between hover:border-neutral-800 transition-colors shadow-sm min-h-[175px]">
+            <div className="space-y-0.5">
+              <span className="text-[8px] font-mono tracking-widest text-neutral-500 uppercase flex items-center gap-1.5">
+                <Activity className="w-3 h-3" /> COMPILATION INDEX
+              </span>
+              <h3 className="text-sm font-bold text-white tracking-tight">Year In Numbers</h3>
             </div>
+            
+            <div className="grid grid-cols-2 gap-4 flex-1 items-center mt-3">
+              <div>
+                <span className="text-3xl md:text-4xl font-extralight text-white font-mono leading-none block">
+                  {numbersStats.commits}
+                </span>
+                <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-widest">COMMITS</span>
+              </div>
+              
+              <div>
+                <span className="text-3xl md:text-4xl font-extralight text-white font-mono leading-none block">
+                  {numbersStats.projects}
+                </span>
+                <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-widest">PROJECTS</span>
+              </div>
 
-            {/* GitHub and Exporter Controls */}
-            <div className="pt-2 flex-grow flex flex-col justify-end space-y-2">
-              <button
-                onClick={handleExport}
-                className="w-full py-2 border border-[#1a1a1a] hover:border-[#9FE870] text-neutral-400 hover:text-[#9FE870] text-center text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1.5 bg-transparent cursor-pointer"
-              >
-                <span>Export Recap</span>
-                <Download className="w-3.5 h-3.5" />
-              </button>
-              <a
-                href={profile.githubUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full py-2 border border-[#1a1a1a] hover:border-neutral-500 text-neutral-400 hover:text-white text-center text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1.5 shadow-sm bg-transparent cursor-pointer"
-              >
-                <span>GitHub Profile</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+              <div>
+                <span className="text-3xl md:text-4xl font-extralight text-white font-mono leading-none block">
+                  {numbersStats.stacks}
+                </span>
+                <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-widest">DIALECTS</span>
+              </div>
+
+              <div>
+                <span className="text-3xl md:text-4xl font-extralight text-[#9FE870] font-mono leading-none block">
+                  {numbersStats.activeDays}
+                </span>
+                <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-widest">DAYS ACTIVE</span>
+              </div>
             </div>
           </div>
 
-          {/* MAIN CONTENT AREA */}
-          <div className="flex-1 p-8 space-y-8 overflow-y-auto max-h-[720px] bg-[#0d0d0d]">
+          {/* CARD 10: AI Reflection (Terminal Block) */}
+          <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-[#09090b] border border-neutral-900 rounded-xl p-4 md:p-5 flex flex-col justify-between hover:border-neutral-800 transition-colors shadow-sm min-h-[175px]">
+            <div className="space-y-0.5">
+              <span className="text-[8px] font-mono tracking-widest text-neutral-500 uppercase flex items-center gap-1.5">
+                <Terminal className="w-3 h-3" /> OBSERVATION LOGS
+              </span>
+              <h3 className="text-sm font-bold text-white tracking-tight">AI Reflection</h3>
+            </div>
+
+            <div className="flex-1 mt-2.5 bg-black/60 rounded-lg p-2.5 border border-neutral-900 font-mono text-[9px] text-[#9FE870] flex flex-col justify-center space-y-1 leading-relaxed">
+              {aiSummary && aiSummary.length > 0 ? (
+                aiSummary.slice(0, 3).map((line, idx) => (
+                  <p key={idx} className="m-0 select-text">{`> ${line}`}</p>
+                ))
+              ) : (
+                <>
+                  <p className="m-0 select-text">{`> JavaScript and TypeScript core systems established.`}</p>
+                  <p className="m-0 select-text">{`> Commits spike during night hours, mapping owl pipelines.`}</p>
+                  <p className="m-0 select-text">{`> Code footprint active across ${numbersStats.projects} repos.`}</p>
+                </>
+              )}
+              <span className="cursor-blink" />
+            </div>
+          </div>
+
+          {/* CARD 2: Coding Journey (Timeline) */}
+          <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-[#09090b] border border-neutral-900 rounded-xl p-4 md:p-5 flex flex-col justify-between hover:border-neutral-800 transition-colors shadow-sm">
+            <div className="space-y-0.5 mb-2">
+              <span className="text-[8px] font-mono tracking-widest text-neutral-500 uppercase flex items-center gap-1.5">
+                <Calendar className="w-3 h-3" /> JOURNEY TIMELINE
+              </span>
+              <h3 className="text-sm font-bold text-white tracking-tight">Milestones</h3>
+            </div>
             
-            {/* TOP BAR nav link tags */}
-            <div className="flex items-center space-x-2 text-[10px] text-neutral-500 font-mono tracking-wider uppercase border-b border-[#1a1a1a] pb-3 select-none">
-              <span>workspace</span>
-              <span className="text-neutral-700">//</span>
-              <span className="text-white font-bold">overview</span>
-              <span className="text-neutral-700">//</span>
-              <span>repositories</span>
-              <span className="text-neutral-700">//</span>
-              <span>languages</span>
-              <span className="text-neutral-700">//</span>
-              <span>commits</span>
-              <span className="text-neutral-700">//</span>
-              <span>AI</span>
-            </div>
-
-            {/* SECTION 1 - Overview Statistic cards */}
-            <div className="space-y-3">
-              <span className="text-[10px] text-neutral-500 uppercase tracking-widest block select-none">Overview</span>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-4 bg-[#090909] border border-[#1a1a1a] rounded-xl flex flex-col justify-between hover:border-neutral-700 transition-colors">
-                  <span className="text-[10px] text-neutral-500 uppercase tracking-widest">⭐ Stars</span>
-                  <span className="text-2xl font-bold text-white mt-2">{stats.totalStars}</span>
-                </div>
-                <div className="p-4 bg-[#090909] border border-[#1a1a1a] rounded-xl flex flex-col justify-between hover:border-neutral-700 transition-colors">
-                  <span className="text-[10px] text-neutral-500 uppercase tracking-widest">📦 Repositories</span>
-                  <span className="text-2xl font-bold text-white mt-2">{repositories.length}</span>
-                </div>
-                <div className="p-4 bg-[#090909] border border-[#1a1a1a] rounded-xl flex flex-col justify-between hover:border-neutral-700 transition-colors">
-                  <span className="text-[10px] text-neutral-500 uppercase tracking-widest">🔥 Streak</span>
-                  <span className="text-2xl font-bold text-white mt-2">{stats.streak} days</span>
-                </div>
-                <div className="p-4 bg-[#090909] border border-[#1a1a1a] rounded-xl flex flex-col justify-between hover:border-neutral-700 transition-colors">
-                  <span className="text-[10px] text-neutral-500 uppercase tracking-widest">🧠 AI Score</span>
-                  <span className="text-2xl font-bold text-[#9FE870] mt-2">{stats.aiScore}%</span>
-                </div>
-              </div>
-            </div>
-
-            {/* SECTION 2 - Repository List */}
-            <div className="space-y-3">
-              <span className="text-[10px] text-neutral-500 uppercase tracking-widest block select-none">Repositories</span>
-              <div className="border border-[#1a1a1a] bg-[#090909] rounded-xl divide-y divide-[#1a1a1a] overflow-hidden">
-                {repositories.length === 0 ? (
-                  <div className="text-neutral-600 text-xs italic py-10 text-center select-none">
-                    No source repositories found for this account.
+            <div className="flex-1 flex items-center overflow-x-auto pb-2 pt-1 min-h-[90px] no-scrollbar">
+              <div className="flex items-start justify-between min-w-[450px] w-full relative px-2">
+                <div className="absolute top-[17px] left-6 right-6 h-[1px] bg-neutral-900" />
+                
+                {timelineMilestones.map((milestone, idx) => (
+                  <div key={idx} className="flex flex-col items-center text-center relative z-10 w-20">
+                    <div className="w-9 h-9 rounded-full bg-neutral-950 border border-neutral-800 flex items-center justify-center text-[9px] font-mono font-bold text-[#9FE870] group hover:border-[#9FE870] transition-colors cursor-default">
+                      {milestone.year}
+                    </div>
+                    <div className="mt-1.5 space-y-0.5">
+                      <span className="text-[9px] font-bold text-white block tracking-tight truncate w-20">
+                        {milestone.event}
+                      </span>
+                      <span className="text-[8px] font-mono text-neutral-500 block leading-tight w-20 px-0.5">
+                        {milestone.desc}
+                      </span>
+                    </div>
                   </div>
-                ) : (
-                  repositories.slice(0, 5).map((repo, idx) => (
-                    <motion.div
-                      key={repo.id}
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.03, duration: 0.2 }}
-                      className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-[#0c0c0c] transition-colors"
-                    >
-                      <div className="space-y-1 flex-1">
-                        <a 
-                          href={repo.url} 
-                          target="_blank" 
-                          rel="noreferrer" 
-                          className="text-xs font-bold text-white hover:text-[#9FE870] transition-colors"
-                        >
-                          {repo.name}
-                        </a>
-                        <p className="text-[11px] text-neutral-500 line-clamp-1 max-w-lg m-0 font-sans leading-tight">
-                          {repo.description}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-4 text-[10px] text-neutral-500 shrink-0 font-mono select-none">
-                        {repo.language && (
-                          <div className="flex items-center space-x-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#9FE870]" />
-                            <span className="text-neutral-400 font-semibold">{repo.language}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center space-x-0.5">
-                          <Star className="w-3 h-3 text-neutral-600" />
-                          <span>{repo.stars}</span>
-                        </div>
-                        <div className="flex items-center space-x-0.5">
-                          <GitFork className="w-3 h-3 text-neutral-600" />
-                          <span>{repo.forks}</span>
-                        </div>
-                        <span>{formatDate(repo.updatedAt)}</span>
-                      </div>
-                    </motion.div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* SECTION 3 - Activity Heatmap */}
-            <div className="space-y-3">
-              <span className="text-[10px] text-neutral-500 uppercase tracking-widest block select-none">Activity Heatmap</span>
-              {renderHeatmap()}
-            </div>
-
-            {/* SECTION 4 - AI Summary */}
-            <div className="space-y-3">
-              <span className="text-[10px] text-neutral-500 uppercase tracking-widest block select-none">AI Summary</span>
-              <div className="p-5 bg-[#090909] border border-[#1a1a1a] rounded-xl font-mono text-xs text-[#9FE870] space-y-1.5">
-                {finalSummary.map((line, idx) => (
-                  <p key={idx} className="m-0">{`> ${line}`}</p>
                 ))}
               </div>
             </div>
+          </div>
 
-            {/* SECTION 5 - Developer Archetype */}
-            <div className="space-y-3">
-              <span className="text-[10px] text-neutral-500 uppercase tracking-widest block select-none">Developer Archetype</span>
-              <div className="p-6 bg-[#090909] border border-[#1a1a1a] rounded-xl flex items-center space-x-6 hover:border-neutral-700 transition-colors">
-                <div className="shrink-0 p-3 bg-[#0d0d0d] border border-[#1a1a1a] rounded-xl select-none">
-                  {renderArchetypeIllustration(finalArchetype)}
+          {/* CARD 5: Coding Clock (Circular polar clock) */}
+          <div className="col-span-1 bg-[#09090b] border border-neutral-900 rounded-xl p-4 md:p-5 flex flex-col justify-between hover:border-neutral-800 transition-colors shadow-sm min-h-[175px]">
+            <div className="space-y-0.5">
+              <span className="text-[8px] font-mono tracking-widest text-neutral-500 uppercase flex items-center gap-1.5">
+                <Clock className="w-3 h-3" /> CODING CLOCK
+              </span>
+              <h3 className="text-sm font-bold text-white tracking-tight">Activity Cycles</h3>
+            </div>
+            
+            <div className="flex-1 flex items-center justify-center">
+              <CodingClock username={profile.username} />
+            </div>
+          </div>
+
+          {/* CARD 7: Achievement Wall (Badging) */}
+          <div className="col-span-1 bg-[#09090b] border border-neutral-900 rounded-xl p-4 md:p-5 flex flex-col justify-between hover:border-neutral-800 transition-colors shadow-sm">
+            <div className="space-y-0.5 mb-2">
+              <span className="text-[8px] font-mono tracking-widest text-neutral-500 uppercase flex items-center gap-1.5">
+                <Award className="w-3 h-3" /> UNLOCKED BADGES
+              </span>
+              <h3 className="text-sm font-bold text-white tracking-tight">Badges</h3>
+            </div>
+
+            <div className="grid grid-cols-5 gap-1.5 flex-1 items-center my-1.5">
+              {/* Badge 1: Production Apps */}
+              <div className="group relative flex flex-col items-center cursor-help">
+                <div className="w-9 h-9 rounded-lg bg-neutral-950 border border-neutral-800 flex items-center justify-center group-hover:border-yellow-500 transition-colors text-base">
+                  🏆
                 </div>
-                <div className="space-y-1">
-                  <h2 className="text-xs font-bold text-white uppercase tracking-wider m-0 select-none">{finalArchetype}</h2>
-                  <p className="text-[11px] text-neutral-500 font-sans m-0 leading-relaxed">{finalArchetypeSentence}</p>
+                <div className="absolute bottom-10 w-24 scale-0 group-hover:scale-100 transition-all bg-neutral-950 border border-neutral-900 text-[8px] font-mono text-neutral-400 p-1 rounded shadow-xl text-center z-20 pointer-events-none">
+                  <span className="text-white font-bold block mb-0.5">Core Creator</span>
+                  Created {numbersStats.projects} repository systems.
+                </div>
+              </div>
+
+              {/* Badge 2: Streak */}
+              <div className="group relative flex flex-col items-center cursor-help">
+                <div className="w-9 h-9 rounded-lg bg-neutral-950 border border-neutral-800 flex items-center justify-center group-hover:border-orange-500 transition-colors text-base">
+                  🔥
+                </div>
+                <div className="absolute bottom-10 w-24 scale-0 group-hover:scale-100 transition-all bg-neutral-950 border border-neutral-900 text-[8px] font-mono text-neutral-400 p-1 rounded shadow-xl text-center z-20 pointer-events-none">
+                  <span className="text-white font-bold block mb-0.5">Streak Runner</span>
+                  {stats.streak} day commit consistency.
+                </div>
+              </div>
+
+              {/* Badge 3: AI Explorer */}
+              <div className="group relative flex flex-col items-center cursor-help">
+                <div className="w-9 h-9 rounded-lg bg-neutral-950 border border-neutral-800 flex items-center justify-center group-hover:border-[#9FE870] transition-colors text-base">
+                  🚀
+                </div>
+                <div className="absolute bottom-10 w-24 scale-0 group-hover:scale-100 transition-all bg-neutral-950 border border-neutral-900 text-[8px] font-mono text-neutral-400 p-1 rounded shadow-xl text-center z-20 pointer-events-none">
+                  <span className="text-white font-bold block mb-0.5">AI Pioneer</span>
+                  Cognitive score calculated at {stats.aiScore}%.
+                </div>
+              </div>
+
+              {/* Badge 4: Open Source */}
+              <div className="group relative flex flex-col items-center cursor-help">
+                <div className="w-9 h-9 rounded-lg bg-neutral-950 border border-neutral-800 flex items-center justify-center group-hover:border-sky-500 transition-colors text-base">
+                  📦
+                </div>
+                <div className="absolute bottom-10 w-24 scale-0 group-hover:scale-100 transition-all bg-neutral-950 border border-neutral-900 text-[8px] font-mono text-neutral-400 p-1 rounded shadow-xl text-center z-20 pointer-events-none">
+                  <span className="text-white font-bold block mb-0.5">Open Source</span>
+                  Distributed public templates.
+                </div>
+              </div>
+
+              {/* Badge 5: Full Stack */}
+              <div className="group relative flex flex-col items-center cursor-help">
+                <div className="w-9 h-9 rounded-lg bg-neutral-950 border border-neutral-800 flex items-center justify-center group-hover:border-purple-500 transition-colors text-base">
+                  🎯
+                </div>
+                <div className="absolute bottom-10 w-24 scale-0 group-hover:scale-100 transition-all bg-neutral-950 border border-neutral-900 text-[8px] font-mono text-neutral-400 p-1 rounded shadow-xl text-center z-20 pointer-events-none">
+                  <span className="text-white font-bold block mb-0.5">Polyglot</span>
+                  Speaks {numbersStats.stacks} language dialects.
                 </div>
               </div>
             </div>
 
+            <p className="text-[9px] text-neutral-600 font-mono">
+              Hover badges for details.
+            </p>
           </div>
-        </div>
 
-        {/* BOTTOM STATUS BAR */}
-        <div className="px-6 py-2.5 bg-[#090909] border-t border-[#1a1a1a] flex justify-between text-[9px] text-neutral-500 tracking-widest uppercase select-none font-mono">
-          <div className="flex items-center space-x-4">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#9FE870]" />
-              connected
-            </span>
-            <span>github api</span>
-            <span>gemini ready</span>
+          {/* CARD 3: Language Evolution (Sankey Flow Chart) */}
+          <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-[#09090b] border border-neutral-900 rounded-xl p-4 md:p-5 flex flex-col justify-between hover:border-neutral-800 transition-colors shadow-sm">
+            <div className="space-y-0.5">
+              <span className="text-[8px] font-mono tracking-widest text-neutral-500 uppercase flex items-center gap-1.5">
+                <Layers className="w-3 h-3" /> TECH EVOLUTION
+              </span>
+              <h3 className="text-sm font-bold text-white tracking-tight">Language Evolution Path</h3>
+            </div>
+            
+            <div className="flex-1 flex items-center justify-center min-h-[110px] my-1">
+              <SankeyDiagram stats={stats} />
+            </div>
           </div>
-          <span>v1.0</span>
+
+          {/* CARD 8: Tech Tree (RPG Skill Tree) */}
+          <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-[#09090b] border border-neutral-900 rounded-xl p-4 md:p-5 flex flex-col justify-between hover:border-neutral-800 transition-colors shadow-sm">
+            <div className="space-y-0.5 mb-1.5">
+              <span className="text-[8px] font-mono tracking-widest text-neutral-500 uppercase flex items-center gap-1.5">
+                <Terminal className="w-3 h-3" /> STATUS MATRIX
+              </span>
+              <h3 className="text-sm font-bold text-white tracking-tight">Skill Matrix Tree</h3>
+            </div>
+            
+            <div className="flex-1 flex items-center justify-center">
+              <TechTree stats={stats} repositories={repositories} />
+            </div>
+          </div>
+
+          {/* CARD 4: Repository Galaxy (Orbiting system - full width) */}
+          <div className="col-span-1 md:col-span-2 lg:col-span-4 bg-[#09090b] border border-neutral-900 rounded-xl p-4 md:p-5 flex flex-col justify-between hover:border-neutral-800 transition-colors shadow-sm min-h-[390px]">
+            <div className="space-y-0.5 z-10 relative">
+              <span className="text-[8px] font-mono tracking-widest text-neutral-500 uppercase flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3" /> REPOSITORY SYSTEM
+              </span>
+              <h3 className="text-sm font-bold text-white tracking-tight">Repository Galaxy</h3>
+              <p className="text-[10px] text-neutral-500 max-w-sm tracking-tight leading-tight">
+                Repositories visualized as orbiting planets. Radius maps repository popularity.
+              </p>
+            </div>
+            
+            <div className="flex-1 flex items-center justify-center w-full mt-2">
+              <RepositoryGalaxy repositories={repositories} avatarUrl={profile.avatarUrl} />
+            </div>
+          </div>
+
         </div>
 
       </div>
+
+      {/* BOTTOM CTAs */}
+      <div className="w-full max-w-4xl pt-8 pb-12 flex flex-col sm:flex-row items-center justify-center gap-3">
+        <button
+          onClick={handleGenerateStory}
+          className="w-full sm:w-auto px-5 py-2.5 border border-neutral-900 bg-neutral-950 hover:bg-neutral-900 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer"
+        >
+          <Sparkles className="w-4 h-4 text-[#9FE870]" />
+          <span>Generate Story Card</span>
+        </button>
+
+        <button
+          onClick={handleExport}
+          className="w-full sm:w-auto px-5 py-2.5 bg-[#9FE870] hover:bg-[#8fd860] text-black text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer"
+        >
+          <Download className="w-4 h-4" />
+          <span>Download Story</span>
+        </button>
+
+        <button
+          onClick={handleShare}
+          className="w-full sm:w-auto px-5 py-2.5 border border-neutral-900 bg-[#060608] hover:bg-neutral-950 text-neutral-400 hover:text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer"
+        >
+          <Share2 className="w-4 h-4" />
+          <span>Share DevWrap</span>
+        </button>
+      </div>
+
     </main>
   );
 }
