@@ -54,7 +54,7 @@ export default function Home() {
               <span className="cursor-blink">devwrap --init</span>
             </div>
             <p className="text-neutral-500 font-sans max-w-sm">
-              An operating system built for developers to mount their analytical dashboard environment.
+              Enter your GitHub username to visualize your coding journey and developer archetype.
             </p>
           </div>
 
@@ -94,7 +94,7 @@ export default function Home() {
             </span>
             <span>github api</span>
           </div>
-          <span>v1.0</span>
+          <span>v3.0</span>
         </div>
       </motion.div>
     </main>

@@ -58,19 +58,19 @@ export default function CodingClock({ username }: CodingClockProps) {
     return { title, subtitle, icon, hours };
   }, [username]);
 
-  const width = 250;
-  const height = 250;
+  const width = 450;
+  const height = 450;
   const cx = width / 2;
   const cy = height / 2;
-  const innerR = 40;
-  const outerR = 86;
+  const innerR = 70;
+  const outerR = 170;
 
   return (
     <div className="flex flex-col items-center justify-between w-full h-full p-2 relative select-none">
       
       {/* Visual Polar Clock Section */}
       <div className="relative flex-1 flex items-center justify-center w-full">
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full max-w-[210px] overflow-visible">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full max-w-[450px] overflow-visible">
           {/* Subtle Outer Dial Ring */}
           <circle cx={cx} cy={cy} r={outerR} fill="none" stroke="#141416" strokeWidth={1} />
           <circle cx={cx} cy={cy} r={innerR} fill="none" stroke="#141416" strokeWidth={1} />
@@ -151,17 +151,17 @@ export default function CodingClock({ username }: CodingClockProps) {
 
           {/* Central content overlay */}
           <foreignObject
-            x={cx - innerR + 5}
-            y={cy - innerR + 5}
-            width={(innerR - 5) * 2}
-            height={(innerR - 5) * 2}
+            x={cx - innerR + 10}
+            y={cy - innerR + 10}
+            width={(innerR - 10) * 2}
+            height={(innerR - 10) * 2}
           >
             <div className="w-full h-full flex flex-col items-center justify-center text-center select-none leading-none">
-              <span className="text-lg mb-1">{clockData.icon}</span>
-              <span className="text-[9px] font-sans font-bold text-white uppercase tracking-wider">
+              <span className="text-3xl mb-2">{clockData.icon}</span>
+              <span className="text-sm font-sans font-bold text-white uppercase tracking-wider">
                 {clockData.title.split(' ')[0]}
               </span>
-              <span className="text-[8px] font-sans text-neutral-500 tracking-tight mt-0.5">
+              <span className="text-xs font-sans text-neutral-500 tracking-tight mt-1">
                 {clockData.title.split(' ')[1] || 'DEV'}
               </span>
             </div>
@@ -171,8 +171,8 @@ export default function CodingClock({ username }: CodingClockProps) {
 
       {/* Narrative block at the bottom */}
       <div className="text-center mt-2">
-        <h3 className="text-xs font-bold text-white uppercase tracking-wider">{clockData.title}</h3>
-        <p className="text-[10px] text-neutral-500 font-mono mt-0.5">{clockData.subtitle}</p>
+        <h3 className="text-sm font-bold text-white uppercase tracking-wider">{clockData.title}</h3>
+        <p className="text-[11px] text-neutral-500 font-mono mt-0.5">{clockData.subtitle}</p>
       </div>
     </div>
   );

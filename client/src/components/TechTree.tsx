@@ -187,7 +187,7 @@ export default function TechTree({ stats, repositories }: TechTreeProps) {
                   x={node.x}
                   y={node.y - 17}
                   textAnchor="middle"
-                  className="fill-neutral-500 font-mono text-[7px] font-bold tracking-widest uppercase transition-colors group-hover:fill-white"
+                  className="fill-neutral-500 font-mono text-[9px] font-bold tracking-wider uppercase transition-colors group-hover:fill-white"
                 >
                   {node.name}
                 </text>
@@ -197,7 +197,7 @@ export default function TechTree({ stats, repositories }: TechTreeProps) {
                   x={node.x}
                   y={node.y + 22}
                   textAnchor="middle"
-                  className="fill-neutral-400 font-mono text-[8px] font-bold"
+                  className="fill-neutral-400 font-mono text-[10px] font-bold"
                 >
                   {`L.${node.level}`}
                 </text>
@@ -215,7 +215,7 @@ export default function TechTree({ stats, repositories }: TechTreeProps) {
           const emptyBlocks = '░'.repeat(10 - node.level);
 
           return (
-            <div key={node.id} className="flex items-center justify-between text-[9px] font-mono leading-none">
+            <div key={node.id} className="flex items-center justify-between text-[11px] font-mono leading-none">
               <span className="text-neutral-500 font-semibold uppercase">{node.name.padEnd(10, ' ')}</span>
               <span className="text-neutral-700 tracking-tighter">
                 <span className="text-[#9FE870]">{filledBlocks}</span>

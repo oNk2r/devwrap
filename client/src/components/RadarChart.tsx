@@ -39,11 +39,11 @@ export default function RadarChart({ stats, repositories, profile }: RadarChartP
     ];
   }, [stats, repositories, profile]);
 
-  const width = 330;
-  const height = 290;
+  const width = 480;
+  const height = 420;
   const cx = width / 2;
   const cy = height / 2;
-  const r = 92; // outer circle radius
+  const r = 140; // outer circle radius
 
   // Calculate coordinates for a trait at a specific level (0-100)
   const getCoordinates = (index: number, value: number) => {
@@ -72,7 +72,7 @@ export default function RadarChart({ stats, repositories, profile }: RadarChartP
   // Coordinates for the labels (placed slightly outer)
   const labelPositions = traits.map((t, idx) => {
     const angle = (idx * 2 * Math.PI) / 6 - Math.PI / 2;
-    const distance = r + 18;
+    const distance = r + 24;
     const x = cx + distance * Math.cos(angle);
     const y = cy + distance * Math.sin(angle);
     
@@ -86,7 +86,7 @@ export default function RadarChart({ stats, repositories, profile }: RadarChartP
 
   return (
     <div className="flex flex-col items-center justify-center w-full h-full p-2 relative select-none">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full max-w-[340px] overflow-visible">
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full max-w-[500px] overflow-visible">
         <defs>
           <radialGradient id="radarAreaGradient" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#9FE870" stopOpacity="0.05" />
@@ -159,17 +159,17 @@ export default function RadarChart({ stats, repositories, profile }: RadarChartP
               x={pos.x}
               y={pos.y}
               textAnchor={pos.textAnchor}
-              className="fill-neutral-400 font-sans text-[10px] font-medium tracking-wide uppercase select-none transition-colors duration-200 hover:fill-white"
-              dy={i === 0 ? -4 : i === 3 ? 12 : 3}
+              className="fill-neutral-400 font-sans text-[11px] font-medium tracking-wider uppercase select-none transition-colors duration-200 hover:fill-white"
+              dy={i === 0 ? -6 : i === 3 ? 14 : 3}
             >
               {pos.label}
             </text>
             <text
               x={pos.x}
-              y={pos.y + 10}
+              y={pos.y + 14}
               textAnchor={pos.textAnchor}
-              className="fill-[#9FE870] font-mono text-[9px] font-semibold"
-              dy={i === 0 ? -4 : i === 3 ? 12 : 3}
+              className="fill-[#9FE870] font-mono text-[10px] font-semibold"
+              dy={i === 0 ? -6 : i === 3 ? 14 : 3}
             >
               {pos.val}%
             </text>

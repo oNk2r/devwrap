@@ -262,7 +262,7 @@ export default function SankeyDiagram({ stats }: SankeyDiagramProps) {
                 x={node.col === 3 ? x - 8 : node.col === 0 ? x + 8 : x}
                 y={y - 11}
                 textAnchor={node.col === 3 ? 'end' : node.col === 0 ? 'start' : 'middle'}
-                className="fill-neutral-400 font-mono text-[10px] font-medium tracking-tight select-none transition-colors duration-200"
+                className="fill-neutral-400 font-mono text-xs font-medium tracking-tight select-none transition-colors duration-200"
                 style={{
                   fill: isNodeHovered ? '#ffffff' : undefined,
                   fontWeight: isNodeHovered ? 'bold' : undefined,

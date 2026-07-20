@@ -43,19 +43,19 @@ export class GitHubController {
     try {
       // 1. Initial connection log
       sendLog(`$ connecting to github api gateway for user: ${username}...`);
-      await delay(400);
+      await delay(50);
 
       // 2. Fetch raw profile
       sendLog(`fetching profile metrics...`);
       const rawProfile = await githubService.fetchRawProfile(username);
       sendLog(`✓ profile found for ${rawProfile.name || rawProfile.login}`);
-      await delay(400);
+      await delay(50);
 
       // 3. Fetch repositories
       sendLog(`reading repositories...`);
       const rawRepos = await githubService.fetchRawRepositories(username);
       sendLog(`✓ found ${rawRepos.length} public repositories`);
-      await delay(400);
+      await delay(50);
 
       // Fetch contributions
       sendLog(`compiling commit activity heatmap...`);
@@ -66,12 +66,12 @@ export class GitHubController {
       } else {
         sendLog(`⚠ contribution data unavailable, generating mock pattern`);
       }
-      await delay(400);
+      await delay(50);
 
       // 4. Run analytics and compile statistics
       sendLog(`collecting metadata & aggregating stats...`);
       const processedResult = analyticsService.analyze(rawProfile, rawRepos);
-      await delay(400);
+      await delay(50);
 
       sendLog(`consulting gemini model for observations...`);
       const geminiResult = await geminiService.generateRecap(
@@ -82,13 +82,13 @@ export class GitHubController {
         processedResult.stats.totalStars,
         processedResult.profile.publicRepos
       );
-      await delay(400);
+      await delay(50);
 
       sendLog(`building workspace modules...`);
-      await delay(400);
+      await delay(50);
 
       sendLog(`✓ workspace compiled. launching interactive terminal...`);
-      await delay(200);
+      await delay(25);
 
       // 5. Send completed result
       sendData({

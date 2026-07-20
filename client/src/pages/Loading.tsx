@@ -86,11 +86,11 @@ export default function Loading() {
     progressIntervalRef.current = window.setInterval(() => {
       setProgress((prev) => {
         if (prev < 96) {
-          return prev + 4;
+          return prev + 8;
         }
         return prev;
       });
-    }, 100);
+    }, 40);
 
     return () => {
       if (eventSourceRef.current) {
@@ -113,7 +113,7 @@ export default function Loading() {
       
       const timeout = setTimeout(() => {
         navigate(`/user/${encodeURIComponent(username || '')}`, { replace: true });
-      }, 500);
+      }, 150);
 
       return () => clearTimeout(timeout);
     }

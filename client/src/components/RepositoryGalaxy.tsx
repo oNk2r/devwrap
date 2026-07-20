@@ -192,7 +192,7 @@ export default function RepositoryGalaxy({ repositories, avatarUrl }: Repository
                   
                   {/* Subtle language orbit tag text on hover */}
                   {hoveredRepo?.id === planet.id && (
-                    <div className="absolute text-[8px] font-mono text-neutral-500 whitespace-nowrap mt-7 bg-neutral-950 px-1 py-0.5 rounded border border-neutral-900">
+                    <div className="absolute text-[10px] font-mono text-neutral-500 whitespace-nowrap mt-7 bg-neutral-950 px-1.5 py-0.5 rounded border border-neutral-900">
                       {planet.language}
                     </div>
                   )}
@@ -229,7 +229,7 @@ export default function RepositoryGalaxy({ repositories, avatarUrl }: Repository
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="absolute z-50 pointer-events-none p-3.5 bg-neutral-950/95 border border-neutral-900 rounded-xl shadow-2xl flex flex-col gap-1 w-48 font-mono text-[10px]"
+              className="absolute z-50 pointer-events-none p-3.5 bg-neutral-950/95 border border-neutral-900 rounded-xl shadow-2xl flex flex-col gap-1.5 w-52 font-mono text-[11px]"
               style={{
                 left: tooltipPos.x,
                 top: tooltipPos.y,
