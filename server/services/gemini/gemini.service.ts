@@ -23,7 +23,7 @@ export class GeminiService {
   ): Promise<GeminiAnalysisResult> {
     const client = this.getClient();
     if (!client) {
-      return this.getFallback(topLanguages, totalStars, publicRepos);
+      return this.getFallback(username, topLanguages, totalStars, publicRepos);
     }
 
     try {
@@ -62,16 +62,46 @@ export class GeminiService {
       };
     } catch (error) {
       console.error('Failed calling Gemini API:', error);
-      return this.getFallback(topLanguages, totalStars, publicRepos);
+      return this.getFallback(username, topLanguages, totalStars, publicRepos);
     }
   }
 
   private getFallback(
+    username: string,
     topLanguages: Array<{ language: string; percentage: number }>,
     totalStars: number,
     publicRepos: number
   ): GeminiAnalysisResult {
     const primaryLang = topLanguages[0]?.language || 'TypeScript';
+
+    // Deterministic selection based on username so different users get different archetypes
+    const charCodeSum = username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const archetypeIndex = charCodeSum % 5;
+
+    const archetypes = [
+      {
+        archetype: 'THE ARCHITECT',
+        archetypeSentence: 'You construct high-scale web modules with precise type systems and modular interfaces.'
+      },
+      {
+        archetype: 'THE ANALYST',
+        archetypeSentence: 'You translate complex data loops and algorithms into automated pipeline scripts.'
+      },
+      {
+        archetype: 'THE SYSTEM BUILDER',
+        archetypeSentence: 'You compile high-performance primitives, prioritizing memory safety and speed.'
+      },
+      {
+        archetype: 'THE EXPLORER',
+        archetypeSentence: 'You navigate experimental libraries, seeking out novel paradigms and cutting-edge tech.'
+      },
+      {
+        archetype: 'THE BUILDER',
+        archetypeSentence: 'You create functional codebases, shipping clean repositories with clear layouts.'
+      }
+    ];
+
+    const chosen = archetypes[archetypeIndex];
 
     const summary = [
       primaryLang === 'TypeScript' || primaryLang === 'JavaScript'
@@ -83,21 +113,7 @@ export class GeminiService {
       'Open-source activity continues to expand with clean layout patterns.'
     ];
 
-    let archetype = 'THE BUILDER';
-    let archetypeSentence = 'You create functional codebases, shipping clean repositories with clear layouts.';
-
-    if (primaryLang === 'TypeScript' || primaryLang === 'JavaScript') {
-      archetype = 'THE ARCHITECT';
-      archetypeSentence = 'You construct high-scale web modules with precise type systems and modular interfaces.';
-    } else if (primaryLang === 'Python') {
-      archetype = 'THE ANALYST';
-      archetypeSentence = 'You translate complex data loops and algorithms into automated pipeline scripts.';
-    } else if (primaryLang === 'Rust' || primaryLang === 'Go' || primaryLang === 'C++') {
-      archetype = 'THE SYSTEM BUILDER';
-      archetypeSentence = 'You compile high-performance primitives, prioritizing memory safety and speed.';
-    }
-
-    return { summary, archetype, archetypeSentence };
+    return { summary, archetype: chosen.archetype, archetypeSentence: chosen.archetypeSentence };
   }
 }
 
