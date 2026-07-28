@@ -11,6 +11,8 @@ import CodingClock from '../components/CodingClock';
 import RepositoryGalaxy from '../components/RepositoryGalaxy';
 import SankeyDiagram from '../components/SankeyDiagram';
 import TechTree from '../components/TechTree';
+import RPGCard from '../components/RPGCard';
+
 
 // ---------------------------------------------------------------------------
 // Design tokens — pulled from a git diff view rather than a generic dark UI.
@@ -33,6 +35,7 @@ const SECTIONS = [
   { id: 'overview', label: 'OV', title: 'Compiled Numbers' },
   { id: 'galaxy', label: 'RG', title: 'Repository Galaxy' },
   { id: 'dna', label: 'DNA', title: 'Core Engineering Traits' },
+  { id: 'rpg', label: 'RPG', title: 'RPG Character Sheet' },
   { id: 'dialects', label: 'LNG', title: 'Language Evolution Path' },
   { id: 'clock', label: 'CLK', title: 'Coding Clock' },
   { id: 'badges', label: 'BDG', title: 'Unlocked Badges' },
@@ -498,6 +501,17 @@ export default function Workspace() {
             <RadarChart stats={stats} repositories={repositories} profile={profile} />
           </div>
         </div>
+
+        {/* RPG CHARACTER CARD */}
+        <div id="rpg" ref={(el) => { sectionRefs.current['rpg'] = el; }} className="scroll-mt-24 space-y-6 flex flex-col items-center">
+          <div className="w-full">
+            <SectionHeading eyebrow="character sheet" title="RPG Developer Character Sheet" />
+          </div>
+          <div className="w-full">
+            <RPGCard profileData={profileData} />
+          </div>
+        </div>
+
 
         {/* DIALECTS */}
         <div id="dialects" ref={(el) => { sectionRefs.current['dialects'] = el; }} className="scroll-mt-24 space-y-6">
