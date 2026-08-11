@@ -1,7 +1,7 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-node_modules
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -10,29 +10,61 @@ node_modules
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
-# production
+# Build & Production Output
+dist/
+client/dist/
+client/dist-ssr/
+server/dist/
 /build
-dist
+*.tsbuildinfo
 
-# misc
-.DS_Store
-*.pem
+# Environment & Secret Files
+.env
+.env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
 
-# debug
+# Logs & Debugging
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# env files
-.env*
+# IDE & Editor Directories
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.sublime-workspace
 
-# vercel
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Testing & Coverage
+/coverage
+.nyc_output
+
+# Temporary & Cache Directories
+.eslintcache
 .vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+.cache/
+.tmp/
+tmp/
+temp/

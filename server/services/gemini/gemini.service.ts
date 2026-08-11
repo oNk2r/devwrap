@@ -51,9 +51,13 @@ export class GeminiService {
       const response = await model.generateContent(prompt);
       const text = response.response.text().trim();
       
-      // Clean up markdown block wraps
-      const cleanJson = text.replace(/^```json/, '').replace(/```$/, '').trim();
-      const parsed = JSON.parse(cleanJson);
+      // Robust JSON extraction
+      let cleanText = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+      const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanText = jsonMatch[0];
+      }
+      const parsed = JSON.parse(cleanText);
       
       return {
         summary: Array.isArray(parsed.summary) ? parsed.summary.slice(0, 3) : [],

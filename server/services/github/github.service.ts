@@ -15,13 +15,33 @@ export class GitHubService {
   }
 
   async fetchRawProfile(username: string): Promise<GitHubRawUser> {
+    const encodedUser = encodeURIComponent(username);
     try {
       const response = await axios.get<GitHubRawUser>(
-        `https://api.github.com/users/${username}`,
+        `https://api.github.com/users/${encodedUser}`,
         { headers: this.getHeaders() }
       );
       return response.data;
     } catch (error: any) {
+      if (error.response?.status === 401 && process.env.GITHUB_TOKEN) {
+        console.warn('Warning: GITHUB_TOKEN unauthorized (401). Retrying request unauthenticated.');
+        try {
+          const fallbackResponse = await axios.get<GitHubRawUser>(
+            `https://api.github.com/users/${encodedUser}`,
+            { headers: { Accept: 'application/vnd.github+json' } }
+          );
+          return fallbackResponse.data;
+        } catch (fallbackError: any) {
+          if (fallbackError.response) {
+            const status = fallbackError.response.status;
+            const message = fallbackError.response.data?.message || 'GitHub Profile Fetch Failed';
+            const err = new Error(message) as any;
+            err.status = status;
+            throw err;
+          }
+          throw fallbackError;
+        }
+      }
       if (error.response) {
         const status = error.response.status;
         const message = error.response.data?.message || 'GitHub Profile Fetch Failed';
@@ -34,14 +54,33 @@ export class GitHubService {
   }
 
   async fetchRawRepositories(username: string): Promise<GitHubRawRepo[]> {
+    const encodedUser = encodeURIComponent(username);
     try {
       // Fetch public repos. Page 1, up to 100 repos.
       const response = await axios.get<GitHubRawRepo[]>(
-        `https://api.github.com/users/${username}/repos?per_page=100&sort=updated`,
+        `https://api.github.com/users/${encodedUser}/repos?per_page=100&sort=updated`,
         { headers: this.getHeaders() }
       );
       return response.data;
     } catch (error: any) {
+      if (error.response?.status === 401 && process.env.GITHUB_TOKEN) {
+        try {
+          const fallbackResponse = await axios.get<GitHubRawRepo[]>(
+            `https://api.github.com/users/${encodedUser}/repos?per_page=100&sort=updated`,
+            { headers: { Accept: 'application/vnd.github+json' } }
+          );
+          return fallbackResponse.data;
+        } catch (fallbackError: any) {
+          if (fallbackError.response) {
+            const status = fallbackError.response.status;
+            const message = fallbackError.response.data?.message || 'GitHub Repositories Fetch Failed';
+            const err = new Error(message) as any;
+            err.status = status;
+            throw err;
+          }
+          throw fallbackError;
+        }
+      }
       if (error.response) {
         const status = error.response.status;
         const message = error.response.data?.message || 'GitHub Repositories Fetch Failed';

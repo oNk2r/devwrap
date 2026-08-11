@@ -5,6 +5,7 @@ import {
   ArrowLeft, Download, Share2, Sparkles, X, Copy
 } from 'lucide-react';
 import useProfileStore from '../store/profileStore';
+import type { DevWrapStats } from '../types/github';
 
 import RadarChart from '../components/RadarChart';
 import CodingClock from '../components/CodingClock';
@@ -19,16 +20,16 @@ import RPGCard from '../components/RPGCard';
 // bg carries a faint green cast instead of true black; --add/--del map to the
 // same colors developers already read every day in their own terminals.
 // ---------------------------------------------------------------------------
-const TOKENS: React.CSSProperties = {
-  ['--bg' as any]: '#0a0e0a',
-  ['--panel' as any]: '#0d130d',
-  ['--border' as any]: '#182018',
-  ['--border-soft' as any]: '#141a14',
-  ['--add' as any]: '#3fb950',
-  ['--add-dim' as any]: '#2b8a3c',
-  ['--del' as any]: '#f85149',
-  ['--muted' as any]: '#6e7681',
-  ['--ink' as any]: '#e6edf3',
+const TOKENS: React.CSSProperties & Record<string, string> = {
+  '--bg': '#0a0e0a',
+  '--panel': '#0d130d',
+  '--border': '#182018',
+  '--border-soft': '#141a14',
+  '--add': '#3fb950',
+  '--add-dim': '#2b8a3c',
+  '--del': '#f85149',
+  '--muted': '#6e7681',
+  '--ink': '#e6edf3',
 };
 
 const SECTIONS = [
@@ -48,7 +49,7 @@ type BadgeDef = {
   emoji: string;
   title: string;
   accent: string;
-  desc: (n: { commits: number; projects: number; stacks: number; activeDays: number }, stats: any) => string;
+  desc: (n: { commits: number; projects: number; stacks: number; activeDays: number }, stats: DevWrapStats) => string;
 };
 
 const BADGES: BadgeDef[] = [
@@ -106,6 +107,21 @@ export default function Workspace() {
   const prefersReducedMotion = useReducedMotion();
 
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  const numbersStats = useMemo(() => {
+    if (!profileData) {
+      return { commits: 0, projects: 0, stacks: 0, activeDays: 0 };
+    }
+    const { repositories, stats, heatmap } = profileData;
+    const totalCommits = stats.streak * 16 + repositories.length * 9 + (stats.totalStars * 3) + 128;
+    const activeDays = heatmap ? heatmap.filter((d) => d.count > 0).length : stats.streak * 4 + 48;
+    return {
+      commits: totalCommits,
+      projects: repositories.length,
+      stacks: stats.topLanguages.length,
+      activeDays: activeDays || 127,
+    };
+  }, [profileData]);
 
   // Font injection — Plus Jakarta Sans for display/body, JetBrains Mono for
   // every terminal/diff/label surface, since the mono treatment is now load
@@ -170,20 +186,9 @@ export default function Workspace() {
     );
   }
 
-  const { profile, repositories, stats, heatmap, aiSummary, archetype, archetypeSentence } = profileData;
+  const { profile, repositories, stats, aiSummary, archetype, archetypeSentence } = profileData;
 
   const handleBack = () => navigate('/');
-
-  const numbersStats = useMemo(() => {
-    const totalCommits = stats.streak * 16 + repositories.length * 9 + (stats.totalStars * 3) + 128;
-    const activeDays = heatmap ? heatmap.filter((d) => d.count > 0).length : stats.streak * 4 + 48;
-    return {
-      commits: totalCommits,
-      projects: repositories.length,
-      stacks: stats.topLanguages.length,
-      activeDays: activeDays || 127,
-    };
-  }, [stats, repositories, heatmap]);
 
   const quietDays = Math.max(0, 365 - numbersStats.activeDays);
 
@@ -547,7 +552,7 @@ export default function Workspace() {
                     aria-expanded={isOpen}
                     aria-controls={`badge-desc-${b.id}`}
                     className="flex flex-col items-center gap-2 bg-transparent border-0 cursor-pointer outline-none"
-                    style={{ ['--badge-accent' as any]: b.accent }}
+                    style={{ '--badge-accent': b.accent } as React.CSSProperties}
                   >
                     <span
                       className="w-16 h-16 rounded-2xl bg-[var(--bg)] border flex items-center justify-center text-3xl transition-colors"

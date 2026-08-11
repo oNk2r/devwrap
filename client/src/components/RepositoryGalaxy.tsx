@@ -162,10 +162,11 @@ export default function RepositoryGalaxy({ repositories, avatarUrl }: Repository
             >
               <div
                 className="galaxy-ring-animation absolute w-full h-full flex items-center justify-center pointer-events-none"
-                style={{
-                  // Pass duration down as a custom property
-                  ['--duration' as any]: `${planet.duration}s`,
-                }}
+                style={
+                  {
+                    '--duration': `${planet.duration}s`,
+                  } as React.CSSProperties
+                }
               >
                 {/* Planet positioned along the orbit radius */}
                 <div
@@ -179,13 +180,15 @@ export default function RepositoryGalaxy({ repositories, avatarUrl }: Repository
                   <motion.div
                     whileHover={{ scale: 1.4 }}
                     className="planet-counter-animation rounded-full relative flex items-center justify-center overflow-hidden"
-                    style={{
-                      width: planet.size * 2,
-                      height: planet.size * 2,
-                      backgroundColor: planet.color,
-                      boxShadow: `0 0 12px ${planet.color}80`,
-                      ['--duration' as any]: `${planet.duration}s`,
-                    }}
+                    style={
+                      {
+                        width: planet.size * 2,
+                        height: planet.size * 2,
+                        backgroundColor: planet.color,
+                        boxShadow: `0 0 12px ${planet.color}80`,
+                        '--duration': `${planet.duration}s`,
+                      } as React.CSSProperties
+                    }
                   >
                     {renderLanguageLogo(planet.language, planet.size)}
                   </motion.div>

@@ -9,20 +9,16 @@ const API_BASE_URL = import.meta.env.VITE_API_URL !== undefined
 
 export default function Loading() {
   const navigate = useNavigate();
-  const { 
-    username, 
-    logs, 
-    addLog, 
-    clearLogs, 
-    setProfileData, 
-    setError, 
-    error,
-    reset 
-  } = useProfileStore();
+  const username = useProfileStore((s) => s.username);
+  const logs = useProfileStore((s) => s.logs);
+  const error = useProfileStore((s) => s.error);
+  const addLog = useProfileStore((s) => s.addLog);
+  const clearLogs = useProfileStore((s) => s.clearLogs);
+  const setProfileData = useProfileStore((s) => s.setProfileData);
+  const setError = useProfileStore((s) => s.setError);
+  const reset = useProfileStore((s) => s.reset);
 
   const [progress, setProgress] = useState(0);
-  const [apiDone, setApiDone] = useState(false);
-  const [fetchedData, setFetchedData] = useState<DevWrapResult | null>(null);
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const progressIntervalRef = useRef<number | null>(null);
@@ -37,12 +33,11 @@ export default function Loading() {
   useEffect(() => {
     if (!username) return;
 
-    clearLogs();
-    setError(null);
-    setProfileData(null);
-    setProgress(0);
-    setApiDone(false);
-    setFetchedData(null);
+    queueMicrotask(() => {
+      clearLogs();
+      setError(null);
+      setProfileData(null);
+    });
 
     const streamUrl = `${API_BASE_URL}/api/github/${encodeURIComponent(username)}`;
     const es = new EventSource(streamUrl);
@@ -64,15 +59,22 @@ export default function Loading() {
             archetype: payload.archetype,
             archetypeSentence: payload.archetypeSentence
           };
-          setFetchedData(result);
-          setApiDone(true);
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+          }
+          setProgress(100);
+          setProfileData(result);
           es.close();
+
+          setTimeout(() => {
+            navigate(`/user/${encodeURIComponent(username)}`, { replace: true });
+          }, 150);
         } else if (payload.type === 'error') {
           setError(payload.message);
           addLog(payload.message);
           es.close();
         }
-      } catch (err: any) {
+      } catch {
         setError('Failed parsing socket event stream');
         addLog(`ERROR: Malformed data stream received.`);
         es.close();
@@ -86,12 +88,7 @@ export default function Loading() {
     };
 
     progressIntervalRef.current = window.setInterval(() => {
-      setProgress((prev) => {
-        if (prev < 96) {
-          return prev + 8;
-        }
-        return prev;
-      });
+      setProgress((prev) => (prev < 96 ? prev + 8 : prev));
     }, 40);
 
     return () => {
@@ -102,24 +99,7 @@ export default function Loading() {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [username, addLog, setError, setProfileData, clearLogs]);
-
-  useEffect(() => {
-    if (apiDone && fetchedData) {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-      }
-      
-      setProgress(100);
-      setProfileData(fetchedData);
-      
-      const timeout = setTimeout(() => {
-        navigate(`/user/${encodeURIComponent(username || '')}`, { replace: true });
-      }, 150);
-
-      return () => clearTimeout(timeout);
-    }
-  }, [apiDone, fetchedData, navigate, setProfileData, username]);
+  }, [username, addLog, setError, setProfileData, clearLogs, navigate]);
 
   useEffect(() => {
     if (consoleBottomRef.current) {

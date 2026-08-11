@@ -21,45 +21,57 @@ export class GitHubController {
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders(); // Establish stream link
 
+    let isAborted = false;
+
+    // Client connection closed
+    req.on('close', () => {
+      isAborted = true;
+      res.end();
+    });
+
     const sendLog = (message: string) => {
+      if (isAborted) return;
       res.write(`data: ${JSON.stringify({ type: 'log', message })}\n\n`);
     };
 
     const sendError = (message: string, status: number = 500) => {
+      if (isAborted) return;
       res.write(`data: ${JSON.stringify({ type: 'error', message, status })}\n\n`);
       res.end();
     };
 
     const sendData = (data: any) => {
+      if (isAborted) return;
       res.write(`data: ${JSON.stringify({ type: 'data', ...data })}\n\n`);
       res.end();
     };
-
-    // Client connection closed
-    req.on('close', () => {
-      res.end();
-    });
 
     try {
       // 1. Initial connection log
       sendLog(`$ connecting to github api gateway for user: ${username}...`);
       await delay(50);
+      if (isAborted) return;
 
       // 2. Fetch raw profile
       sendLog(`fetching profile metrics...`);
       const rawProfile = await githubService.fetchRawProfile(username);
+      if (isAborted) return;
       sendLog(`✓ profile found for ${rawProfile.name || rawProfile.login}`);
       await delay(50);
+      if (isAborted) return;
 
       // 3. Fetch repositories
       sendLog(`reading repositories...`);
       const rawRepos = await githubService.fetchRawRepositories(username);
+      if (isAborted) return;
       sendLog(`✓ found ${rawRepos.length} public repositories`);
       await delay(50);
+      if (isAborted) return;
 
       // Fetch contributions
       sendLog(`compiling commit activity heatmap...`);
       const contributionsData = await githubService.fetchContributions(username);
+      if (isAborted) return;
       const heatmap = contributionsData?.contributions || [];
       if (heatmap.length > 0) {
         sendLog(`✓ loaded contribution calendar data`);
@@ -67,11 +79,13 @@ export class GitHubController {
         sendLog(`⚠ contribution data unavailable, generating mock pattern`);
       }
       await delay(50);
+      if (isAborted) return;
 
       // 4. Run analytics and compile statistics
       sendLog(`collecting metadata & aggregating stats...`);
       const processedResult = analyticsService.analyze(rawProfile, rawRepos);
       await delay(50);
+      if (isAborted) return;
 
       sendLog(`consulting gemini model for observations...`);
       const geminiResult = await geminiService.generateRecap(
@@ -82,6 +96,7 @@ export class GitHubController {
         processedResult.stats.totalStars,
         processedResult.profile.publicRepos
       );
+      if (isAborted) return;
       await delay(50);
 
       sendLog(`building workspace modules...`);
@@ -99,6 +114,7 @@ export class GitHubController {
         archetypeSentence: geminiResult.archetypeSentence
       });
     } catch (error: any) {
+      if (isAborted) return;
       console.error(`Error in stream for ${username}:`, error);
       const status = error.status || 500;
       const message = error.message || 'Internal Server Error';
