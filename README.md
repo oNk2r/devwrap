@@ -1,136 +1,104 @@
-# DevWrap 🖥️🚀
+# DevWrap
 
-> A **"Spotify Wrapped"** experience for developers, compiling and showcasing an interactive, terminal-styled GitHub profile fingerprint with AI-generated archetypes and insights.
+A web application that compiles an interactive, terminal-styled developer fingerprint from public GitHub profile data. DevWrap aggregates repository telemetry, computes developer traits, and synthesizes developer archetypes using Gemini AI.
 
----
+## Key Features
 
-## ✨ Features
+- **Real-Time Data Streaming**: Uses Server-Sent Events (SSE) to stream compilation status logs and parsed metrics directly to the client terminal UI.
+- **Interactive Visualizations**: Renders data modules including orbital repository galaxies, engineering radar charts, dialect flow paths, polar activity clocks, and skill matrix trees.
+- **AI Archetype Synthesis**: Evaluates repository languages, stars, and commit data using the Gemini AI API (with deterministic offline fallbacks) to classify coding personalities.
+- **PNG Story Export**: Provides client-side export for developer recap story cards and RPG character sheets using `html-to-image`.
+- **Resilient Fallbacks**: Graceful degradation when facing GitHub API rate limits, missing contribution heatmaps, or unauthenticated API usage.
 
-- **📺 Retro-Futuristic Terminal UI**: Sleek, glassmorphic terminal theme built with Vanilla CSS, TailwindCSS, and Framer Motion micro-animations.
-- **⚡ Real-time SSE Telemetry Stream**: Server-Sent Events (SSE) stream logs and progress back to the user interface dynamically, showing compiler progress logs as your profile aggregates.
-- **📅 Real-Time GitHub Contribution Heatmap**: An interactive, 5-level green calendar grid pulling actual contributions from the last year with hover tooltips displaying exact contribution counts and dates.
-- **🤖 Gemini AI Profile Archetype**: Queries Gemini AI model to generate a custom developer archetype (e.g. *THE ARCHITECT*, *THE SYSTEM BUILDER*, *THE ANALYST*, *THE BUILDER*) and profile summary statements based on your repositories' languages and metrics.
-- **📸 High-Quality PNG Recap Card Export**: One-click screenshot capture to export your terminal dashboard directly as a PNG using `html-to-image`.
-- **⚙️ Robust Fail-Safe System**: Graceful fallbacks for heatmaps, repositories, and AI endpoints if rate limits are hit or network connections drop.
+## Tech Stack
 
----
+### Frontend (`/client`)
+- **Framework**: React 19, Vite, TypeScript
+- **State Management**: Zustand
+- **Routing**: React Router v7
+- **Styling & Motion**: TailwindCSS v4, Framer Motion, Lucide Icons
 
-## 🛠️ Technology Stack
+### Backend (`/server`)
+- **Runtime**: Node.js, Express.js (v5), `tsx`
+- **Services**: Google Generative AI (`@google/generative-ai`), Axios
 
-### Client (Frontend)
-- **Framework**: [React](https://react.dev/) + [Vite](https://vite.dev/)
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **State Management**: [Zustand](https://github.com/pmndrs/zustand)
-- **Routing**: [React Router](https://reactrouter.com/)
-- **Styling**: [TailwindCSS v4](https://tailwindcss.com/) + Custom CSS
-- **Animations**: [Framer Motion](https://www.framer.com/motion/)
-- **Icons**: [Lucide React](https://lucide.dev/)
-
-### Server (Backend)
-- **Runtime**: [Node.js](https://nodejs.org/)
-- **Framework**: [Express.js (v5)](https://expressjs.com/)
-- **SDKs & Libraries**:
-  - `@google/generative-ai` (Gemini API Integration)
-  - `axios` (External requests & GitHub API integration)
-  - `tsx` (TypeScript execute engine)
-
----
-
-## 📂 Project Structure
+## Project Structure
 
 ```text
 DevWrap/
-├── client/                 # Frontend React application
+├── client/                  # Frontend React application
 │   ├── src/
-│   │   ├── components/     # UI components (terminal, loaders, layout)
-│   │   ├── hooks/          # Custom react hooks
-│   │   ├── pages/          # Home, Loading, Workspace Dashboard, NotFound
-│   │   ├── store/          # Zustand state store
-│   │   ├── types/          # TypeScript interface definitions
-│   │   └── App.tsx         # Router setup
+│   │   ├── components/      # RadarChart, RepositoryGalaxy, RPGCard, SankeyDiagram, etc.
+│   │   ├── pages/           # Home, Loading, Workspace, NotFound
+│   │   ├── store/           # Zustand profile state store
+│   │   └── types/           # TypeScript interface definitions
 │   ├── package.json
 │   └── vite.config.ts
 │
-├── server/                 # Backend Node/Express API
-│   ├── controllers/        # Express router controller (SSE logic)
-│   ├── routes/             # API routes definition
-│   ├── services/
-│   │   ├── analytics/      # Metric processors
-│   │   ├── gemini/         # AI generator wrappers
-│   │   └── github/         # API & scraper services
-│   ├── types/              # Type definitions
-│   ├── index.ts            # Entrypoint file
-│   └── package.json
+└── server/                  # Backend Express API
+    ├── controllers/         # GitHub controller with SSE streaming
+    ├── routes/              # Express routes
+    ├── services/            # Analytics, Gemini AI, and GitHub services
+    ├── types/               # Server-side TypeScript interfaces
+    ├── index.ts             # Express application entrypoint
+    └── package.json
 ```
 
----
+## Getting Started
 
-## ⚙️ Environment Configuration
+### Prerequisites
 
-Set up configuration variables in your project directories before starting the dev servers.
+- Node.js (v18 or higher)
+- npm
 
-### Backend (`server/.env`)
-Create a `.env` file in the `server` directory:
+### Environment Setup
 
-```env
-PORT=5000
-CLIENT_URL=http://localhost:5173
-GITHUB_TOKEN=your_personal_github_access_token_here
-GEMINI_API_KEY=your_gemini_api_key_here
-```
+1. **Backend Environment** (`server/.env`):
+   ```env
+   PORT=5000
+   CLIENT_URL=http://localhost:5173
+   GITHUB_TOKEN=your_github_token  # Optional (prevents API rate limits)
+   GEMINI_API_KEY=your_gemini_key  # Optional (falls back to deterministic selection)
+   ```
 
-> [!TIP]
-> Specifying a `GITHUB_TOKEN` is highly recommended to prevent standard GitHub API rate limiting.
+2. **Frontend Environment** (`client/.env.local`):
+   ```env
+   VITE_API_URL=http://localhost:5000
+   ```
 
-### Frontend (`client/.env.local`)
-Create a `.env.local` file in the `client` directory:
+### Running Locally
 
-```env
-VITE_API_URL=http://localhost:5000
-```
+1. **Launch Backend**:
+   ```bash
+   cd server
+   npm install
+   npm run dev
+   ```
+   The backend server runs on `http://localhost:5000`.
 
----
+2. **Launch Frontend**:
+   ```bash
+   cd client
+   npm install
+   npm run dev
+   ```
+   The web application runs on `http://localhost:5173`.
 
-## 🚀 Running Locally
+## API Endpoints
 
-Ensure you have [Node.js](https://nodejs.org/) installed on your machine.
+- `GET /api/health`: Health check endpoint.
+- `GET /api/github/:username`: Server-Sent Events (SSE) stream yielding profile logs and compiled metrics.
 
-### 1. Launch the Backend Server
+## Production Build
+
 ```bash
-cd server
-npm install
-npm run dev
+# Compile Frontend Client
+cd client && npm run build
+
+# Compile Backend Server
+cd server && npm run build
 ```
-The server will boot up on `http://localhost:5000` with hot-reloading active.
 
-### 2. Launch the Client
-```bash
-cd client
-npm install
-npm run dev
-```
-The dev server will boot up on `http://localhost:5173`. Open this URL in your web browser.
+## License
 
----
-
-## 🏗️ Building for Production
-
-### Compile Client
-```bash
-cd client
-npm run build
-```
-This runs the TypeScript compiler and compiles the assets into the `dist/` directory.
-
-### Compile Server
-```bash
-cd server
-npm run build
-```
-This compiles the server files into JavaScript inside the `dist/` directory.
-
----
-
-## 📜 License
-
-Distributed under the ISC License. See `LICENSE` for more information.
+ISC License.
