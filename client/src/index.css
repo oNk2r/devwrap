@@ -1,53 +1,56 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap');
 
 @theme inline {
-  --font-sans: 'JetBrains Mono', ui-monospace, monospace;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-  --font-heading: 'JetBrains Mono', ui-monospace, monospace;
+  --font-sans: 'Space Mono', 'Courier New', Courier, monospace;
+  --font-mono: 'Space Mono', 'Courier New', Courier, monospace;
+  --font-heading: 'VT323', 'Space Mono', monospace;
 }
 
 :root {
-  --bg: #090909;
-  --text: #a3a3a3; /* secondary soft gray */
-  --text-h: #ffffff; /* primary white */
-  --accent: #9FE870; /* terminal green */
-  --border: #1a1a1a; /* thin subtle terminal lines */
-  --sans: 'JetBrains Mono', ui-monospace, monospace;
-  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --bg: #E3E3E3;
+  --text: #000000;
+  --text-h: #000000;
+  --accent: #000000;
+  --border: #000000;
+  --border-soft: #000000;
+  --sans: 'Space Mono', 'Courier New', Courier, monospace;
+  --mono: 'Space Mono', 'Courier New', Courier, monospace;
 
   /* shadcn mappings to retain consistency */
-  --background: oklch(0.1 0 0);
-  --foreground: oklch(0.95 0 0);
-  --card: oklch(0.12 0 0);
-  --card-foreground: oklch(0.95 0 0);
-  --popover: oklch(0.12 0 0);
-  --popover-foreground: oklch(0.95 0 0);
-  --primary: oklch(0.85 0.16 115); /* terminal green approx */
-  --primary-foreground: oklch(0.1 0 0);
-  --secondary: oklch(0.18 0 0);
-  --secondary-foreground: oklch(0.8 0 0);
-  --muted: oklch(0.18 0 0);
-  --muted-foreground: oklch(0.6 0 0);
-  --accent-color: oklch(0.85 0.16 115);
-  --accent-foreground: oklch(0.1 0 0);
-  --border-color: oklch(0.18 0 0);
-  --input: oklch(0.18 0 0);
-  --ring: oklch(0.85 0.16 115);
-  --radius: 0.625rem;
+  --background: oklch(0.92 0 0);
+  --foreground: oklch(0 0 0);
+  --card: oklch(0.92 0 0);
+  --card-foreground: oklch(0 0 0);
+  --popover: oklch(0.92 0 0);
+  --popover-foreground: oklch(0 0 0);
+  --primary: oklch(0 0 0);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.85 0 0);
+  --secondary-foreground: oklch(0 0 0);
+  --muted: oklch(0.85 0 0);
+  --muted-foreground: oklch(0.3 0 0);
+  --accent-color: oklch(0 0 0);
+  --accent-foreground: oklch(1 0 0);
+  --border-color: oklch(0 0 0);
+  --input: oklch(0.92 0 0);
+  --ring: oklch(0 0 0);
+  --radius: 0px;
 
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  background-color: #090909;
-  color: #a3a3a3;
-  color-scheme: dark;
+  font-family: 'Space Mono', 'Courier New', Courier, monospace;
+  background-color: #E3E3E3;
+  color: #000000;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
-  background-color: #090909;
-  color: #a3a3a3;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  background-color: #E3E3E3;
+  color: #000000;
+  font-family: 'Space Mono', 'Courier New', Courier, monospace;
+  image-rendering: pixelated;
 }
 
 #root {
@@ -58,77 +61,123 @@ body {
   box-sizing: border-box;
 }
 
-/* Custom Scrollbar matching terminal console styles */
+/* Custom retro scrollbar */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #090909;
+  background: #E3E3E3;
+  border-left: 1px solid #000000;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1a1a1a;
-  border-radius: 2px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #2a2a2a;
+  background: #000000;
+  border: 1px solid #E3E3E3;
 }
 
-/* Operating System Utility Styles */
+/* Retro CRT Overlays */
+.crt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.08) 50%
+  );
+  background-size: 100% 4px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.crt-vignette {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* CRT Screen Glow Effect */
+.crt-glow {
+  text-shadow: 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+/* 1-bit Image Grayscale & High Contrast Dither Filter */
+.dithered-img {
+  filter: grayscale(100%) contrast(220%) brightness(95%);
+  image-rendering: pixelated;
+}
+
+/* Bezel framing helper simulating a recessed CRT window container */
+.crt-window {
+  border: 3px double #000000;
+  background-color: #E3E3E3;
+}
+
 .os-window {
-  background: #0d0d0d;
-  border: 1px solid #1a1a1a;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  background: #E3E3E3;
+  border: 2px solid #000000;
+  box-shadow: 4px 4px 0px #000000;
 }
 
 .os-border {
-  border: 1px solid #1a1a1a;
+  border: 1px solid #000000;
 }
 
-.text-accent {
-  color: #9FE870;
+/* Dotted and Dashed Dividers */
+.divider-dotted {
+  border-top: 1px dotted #000000;
 }
 
-.border-accent-hover:hover {
-  border-color: #9FE870 !important;
+.divider-dashed {
+  border-top: 1px dashed #000000;
 }
 
-/* Custom Animations */
-@keyframes blink {
+/* Retro blink caret cursor */
+@keyframes retro-blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
 
-.cursor-blink::after {
-  content: "▊";
-  color: #9FE870;
+.cursor-retro-blink::after {
+  content: "█";
+  color: #000000;
   display: inline-block;
   margin-left: 2px;
-  animation: blink 1s step-end infinite;
+  animation: retro-blink 1s step-end infinite;
 }
 
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Classic Button hover state inverts black/white */
+.btn-retro {
+  background-color: #E3E3E3;
+  color: #000000;
+  border: 1px solid #000000;
+  font-family: 'Space Mono', monospace;
+  text-transform: uppercase;
+  font-weight: bold;
+  transition: none;
+  cursor: pointer;
+  border-radius: 0px !important;
 }
 
-.fade-in {
-  animation: fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.btn-retro:hover {
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
 }
 
-.scanlines {
-  position: relative;
-  overflow: hidden;
+.btn-retro-active {
+  background-color: #000000;
+  color: #FFFFFF;
+  border: 1px solid #000000;
+  border-radius: 0px !important;
 }
 
-.scanlines::before {
-  content: " ";
-  display: block;
-  position: absolute;
-  top: 0; left: 0; bottom: 0; right: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%);
-  background-size: 100% 4px;
-  z-index: 9999;
-  pointer-events: none;
-  opacity: 0.3;
+.btn-retro-active:hover {
+  background-color: #E3E3E3 !important;
+  color: #000000 !important;
 }

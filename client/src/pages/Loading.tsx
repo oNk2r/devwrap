@@ -68,7 +68,7 @@ export default function Loading() {
 
           setTimeout(() => {
             navigate(`/user/${encodeURIComponent(username)}`, { replace: true });
-          }, 150);
+          }, 400); // slightly longer delay for full 80s immersive experience
         } else if (payload.type === 'error') {
           setError(payload.message);
           addLog(payload.message);
@@ -88,8 +88,8 @@ export default function Loading() {
     };
 
     progressIntervalRef.current = window.setInterval(() => {
-      setProgress((prev) => (prev < 96 ? prev + 8 : prev));
-    }, 40);
+      setProgress((prev) => (prev < 96 ? prev + 4 : prev));
+    }, 80);
 
     return () => {
       if (eventSourceRef.current) {
@@ -112,88 +112,99 @@ export default function Loading() {
     navigate('/');
   };
 
+  // Character progress bar calculation: 20 blocks total
+  const totalBlocks = 20;
+  const filledBlocks = Math.round((progress / 100) * totalBlocks);
+  const characterProgressBar = '█'.repeat(filledBlocks) + '░'.repeat(totalBlocks - filledBlocks);
+
   return (
-    <main className="min-h-screen bg-[#090909] text-neutral-400 font-mono flex items-center justify-center p-4 selection:bg-[#9FE870]/20 selection:text-[#9FE870] relative scanlines">
-      
-      <div className="w-full max-w-lg rounded-2xl os-window overflow-hidden flex flex-col fade-in">
-        {/* macOS Controls */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#0d0d0d] border-b border-[#1a1a1a] select-none">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-[#262626] border border-[#1a1a1a]" />
-            <div className="w-3 h-3 rounded-full bg-[#262626] border border-[#1a1a1a]" />
-            <div className="w-3 h-3 rounded-full bg-[#262626] border border-[#1a1a1a]" />
-          </div>
-          <span className="text-[11px] text-neutral-500 tracking-wider">
-            devwrap // setup
-          </span>
-          <div className="w-12" />
-        </div>
+    <main className="min-h-screen bg-[#E3E3E3] text-black font-mono flex items-center justify-center p-4 selection:bg-black selection:text-white relative crt-screen">
+      <div className="crt-overlay" />
+      <div className="crt-vignette" />
 
-        {/* Content Box */}
-        <div className="p-8 space-y-6 bg-[#0d0d0d] min-h-[300px] flex flex-col justify-between">
+      <div className="w-full max-w-lg bg-[#E3E3E3] border-4 border-double border-black p-1 shadow-[6px_6px_0px_#000000] relative z-10 rounded-none">
+        
+        {/* Double Frame bezel container */}
+        <div className="border border-black p-6 space-y-6">
           
-          {/* Scrollable Logs Output */}
-          <div className="flex-1 space-y-2 text-xs overflow-y-auto max-h-[180px] pr-2 bg-[#090909] border border-[#1a1a1a] rounded-xl p-4 font-mono">
-            <p className="text-neutral-600">Initializing DevWrap virtual environment...</p>
-            {logs.map((log, index) => {
-              const isError = log.startsWith('ERROR:') || log.includes('error') || log.includes('Failed');
-              const isSuccess = log.startsWith('✓');
-              let textColor = 'text-neutral-400';
-              if (isError) textColor = 'text-rose-500';
-              else if (isSuccess) textColor = 'text-[#9FE870]';
-              else if (log.startsWith('$')) textColor = 'text-[#9FE870]';
-
-              return (
-                <p key={index} className={`${textColor} leading-relaxed`}>
-                  {log}
-                </p>
-              );
-            })}
-            <div ref={consoleBottomRef} />
+          {/* Header */}
+          <div className="text-center select-none">
+            <h1 className="text-2xl font-bold tracking-widest font-heading uppercase">
+              * PROGRAM LOADER *
+            </h1>
+            <p className="text-[11px] uppercase tracking-wider border-b border-black border-dashed pb-3">
+              Compiling DevWrap User: {username}
+            </p>
           </div>
 
-          {/* Progress Indicator and Controls */}
-          <div className="space-y-4 pt-2">
-            {error ? (
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <span className="text-[11px] text-rose-500 uppercase tracking-wider font-semibold">
-                  Setup failed.
-                </span>
+          {error ? (
+            /* Fatal System Error Panel */
+            <div className="space-y-4">
+              <div className="border-2 border-black p-4 bg-black text-white rounded-none">
+                <p className="font-bold text-center tracking-widest mb-2 font-heading text-lg">
+                  *** FATAL SYSTEM ERROR ***
+                </p>
+                <p className="text-xs text-center">
+                  DIAGNOSTIC FAULT DETECTED DURING USER RECORD FETCH
+                </p>
+              </div>
+
+              <div className="border border-black p-3 bg-white/50 text-xs min-h-[80px] font-mono leading-relaxed rounded-none">
+                <p className="font-bold uppercase text-[10px] text-neutral-600 mb-1">Error Dump:</p>
+                <p>{error}</p>
+              </div>
+
+              <div className="flex justify-end pt-2">
                 <button
                   onClick={handleBack}
-                  className="px-4 py-2 border border-[#1a1a1a] hover:border-rose-500 text-rose-500 hover:bg-rose-500/5 font-medium rounded-xl text-xs transition-all cursor-pointer"
+                  className="px-6 py-2 btn-retro text-xs rounded-none"
                 >
-                  Go Back
+                  ◀ Main Menu
                 </button>
               </div>
-            ) : (
-              // Progress Bar
-              <div className="space-y-2 select-none">
-                <div className="flex justify-between text-[10px] text-neutral-500 font-semibold tracking-wider uppercase">
-                  <span>compiling stream</span>
-                  <span className="text-[#9FE870]">{progress}%</span>
-                </div>
-                <div className="w-full bg-[#090909] rounded-full h-1.5 overflow-hidden border border-[#1a1a1a]">
-                  <div 
-                    className="bg-[#9FE870] h-full transition-all duration-150 rounded-full" 
-                    style={{ width: `${progress}%` }}
-                  />
+            </div>
+          ) : (
+            /* Standard Loading Progress Panel */
+            <div className="space-y-5">
+              <div className="space-y-1 text-xs select-none">
+                <p className="font-bold uppercase">TRACKING STATUS: READING SECTORS</p>
+                <p>SECTOR ADDR: 0x{progress.toString(16).toUpperCase()}</p>
+                <div className="flex justify-between items-center pt-2">
+                  <span className="font-mono text-[11px] font-bold tracking-wider">
+                    [{characterProgressBar}]
+                  </span>
+                  <span className="font-bold">{progress}%</span>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Bottom Status Bar */}
-        <div className="px-6 py-2.5 bg-[#090909] border-t border-[#1a1a1a] flex justify-between text-[9px] text-neutral-500 tracking-widest uppercase select-none font-mono">
-          <div className="flex items-center space-x-4">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-[#9FE870]" />
-              compiling
-            </span>
-            <span>sse gateway</span>
-          </div>
-          <span>v1.0</span>
+              {/* Scrollable Logs Output */}
+              <div className="space-y-1.5 text-xs overflow-y-auto h-[140px] pr-2 bg-white/80 border border-black p-3 font-mono rounded-none">
+                <p className="text-neutral-500">// Initiating workstation pipeline...</p>
+                {logs.map((log, index) => {
+                  const isError = log.startsWith('ERROR:') || log.includes('error') || log.includes('Failed');
+                  const isSuccess = log.startsWith('✓');
+                  let prefix = '> ';
+                  if (log.startsWith('$')) {
+                    prefix = '';
+                  }
+                  
+                  return (
+                    <p key={index} className={`${isError ? 'text-red-600 font-bold' : isSuccess ? 'text-black font-bold' : 'text-neutral-800'} leading-normal`}>
+                      {prefix}{log}
+                    </p>
+                  );
+                })}
+                <div ref={consoleBottomRef} />
+              </div>
+
+              {/* Loader Status Bar */}
+              <div className="pt-2 border-t border-black border-dashed flex justify-between text-[9px] text-neutral-600 tracking-wider uppercase select-none">
+                <span>PORT: 5000</span>
+                <span>BAUD: 9600</span>
+                <span>SYS_OP LOGGED IN</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </main>

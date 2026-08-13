@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, Download, Share2, Sparkles, X, Copy
+  Home, User, Cpu, Settings, LogOut,
+  Download, Share2, Sparkles, X, Copy, Terminal, Mail, Info, FileText, ChevronRight, BarChart2, Award, Clock
 } from 'lucide-react';
 import useProfileStore from '../store/profileStore';
-import type { DevWrapStats } from '../types/github';
+import type { DevWrapStats, DevWrapRepo, DevWrapProfile, DevWrapResult } from '../types/github';
 
 import RadarChart from '../components/RadarChart';
 import CodingClock from '../components/CodingClock';
@@ -14,99 +15,178 @@ import SankeyDiagram from '../components/SankeyDiagram';
 import TechTree from '../components/TechTree';
 import RPGCard from '../components/RPGCard';
 
+type TabType = 'overview' | 'galaxy' | 'traits' | 'languages' | 'clock' | 'badges' | 'settings';
 
-// ---------------------------------------------------------------------------
-// Design tokens — pulled from a git diff view rather than a generic dark UI.
-// bg carries a faint green cast instead of true black; --add/--del map to the
-// same colors developers already read every day in their own terminals.
-// ---------------------------------------------------------------------------
-const TOKENS: React.CSSProperties & Record<string, string> = {
-  '--bg': '#0a0e0a',
-  '--panel': '#0d130d',
-  '--border': '#182018',
-  '--border-soft': '#141a14',
-  '--add': '#3fb950',
-  '--add-dim': '#2b8a3c',
-  '--del': '#f85149',
-  '--muted': '#6e7681',
-  '--ink': '#e6edf3',
-};
-
-const SECTIONS = [
-  { id: 'overview', label: 'OV', title: 'Compiled Numbers' },
-  { id: 'galaxy', label: 'RG', title: 'Repository Galaxy' },
-  { id: 'dna', label: 'DNA', title: 'Core Engineering Traits' },
-  { id: 'rpg', label: 'RPG', title: 'RPG Character Sheet' },
-  { id: 'dialects', label: 'LNG', title: 'Language Evolution Path' },
-  { id: 'clock', label: 'CLK', title: 'Coding Clock' },
-  { id: 'badges', label: 'BDG', title: 'Unlocked Badges' },
-  { id: 'ai', label: 'AI', title: 'AI Observations' },
-  { id: 'skills', label: 'SKL', title: 'Skill Matrix Tree' },
-] as const;
-
-type BadgeDef = {
+interface BadgeDef {
   id: string;
   emoji: string;
   title: string;
-  accent: string;
   desc: (n: { commits: number; projects: number; stacks: number; activeDays: number }, stats: DevWrapStats) => string;
-};
+}
 
 const BADGES: BadgeDef[] = [
-  { id: 'creator', emoji: '🏆', title: 'Core Creator', accent: '#e3b341',
+  { id: 'creator', emoji: '🏆', title: 'Core Creator',
     desc: (n) => `Created ${n.projects} repository systems.` },
-  { id: 'streak', emoji: '🔥', title: 'Streak Runner', accent: '#f0883e',
+  { id: 'streak', emoji: '🔥', title: 'Streak Runner',
     desc: (_n, stats) => `${stats.streak} day consistency.` },
-  { id: 'ai', emoji: '🚀', title: 'AI Pioneer', accent: 'var(--add)',
+  { id: 'ai', emoji: '🤖', title: 'AI Pioneer',
     desc: (_n, stats) => `Cognitive score ${stats.aiScore}%.` },
-  { id: 'oss', emoji: '📦', title: 'Open Source', accent: '#58a6ff',
+  { id: 'oss', emoji: '📦', title: 'Open Source',
     desc: () => `Distributed public templates.` },
-  { id: 'polyglot', emoji: '🎯', title: 'Polyglot', accent: '#a371f7',
+  { id: 'polyglot', emoji: '🎯', title: 'Polyglot',
     desc: (n) => `Speaks ${n.stacks} dialects.` },
 ];
 
-// Diff-style lines per archetype — replaces the decorative SVG illustrations
-// with something that speaks the audience's own language.
-function getArchetypeDiff(title: string): { op: '+' | '-' | ' '; text: string }[] {
-  const t = title || 'THE BUILDER';
-  if (t.includes('ARCHITECT')) return [
-    { op: '+', text: 'designs the schema before the first commit' },
-    { op: '+', text: 'favors clear boundaries over clever shortcuts' },
-    { op: '-', text: 'ships without a plan' },
-  ];
-  if (t.includes('ANALYST')) return [
-    { op: '+', text: 'tracks trend lines across every repo' },
-    { op: '+', text: 'optimizes for signal, not noise' },
-    { op: '-', text: 'guesses instead of measuring' },
-  ];
-  if (t.includes('SYSTEM')) return [
-    { op: '+', text: 'builds infrastructure that outlives the feature' },
-    { op: '+', text: 'wires components so failures stay contained' },
-    { op: '-', text: 'leaves the plumbing for later' },
-  ];
-  if (t.includes('EXPLORER')) return [
-    { op: '+', text: 'pulls new stacks into the rotation often' },
-    { op: '+', text: 'prototypes fast, discards faster' },
-    { op: '-', text: 'stays in one comfortable lane' },
-  ];
-  return [
-    { op: '+', text: 'ships clean, working code on a steady cadence' },
-    { op: '+', text: 'keeps repositories legible for the next contributor' },
-    { op: '-', text: 'lets scope creep unchecked' },
-  ];
-}
+const THEME_STYLES = {
+  gray: {
+    '--bg': '#E3E3E3',
+    '--text': '#000000',
+    '--border': '#000000',
+    '--panel': '#FFFFFF',
+    '--text-dim': '#555555',
+    colorScheme: 'light',
+  },
+  green: {
+    '--bg': '#091009',
+    '--text': '#3fb950',
+    '--border': '#3fb950',
+    '--panel': '#0e170e',
+    '--text-dim': '#2a7c36',
+    colorScheme: 'dark',
+  },
+  amber: {
+    '--bg': '#120800',
+    '--text': '#ffb000',
+    '--border': '#ffb000',
+    '--panel': '#1b0e00',
+    '--text-dim': '#b87e00',
+    colorScheme: 'dark',
+  }
+} as const;
+
+const dropdownMenus = {
+  File: [
+    { label: 'Search Github User...', action: 'search' },
+    { label: 'Download Story Poster', action: 'export' },
+    { label: 'Copy Share Link', action: 'share' },
+    { label: 'Disconnect Node', action: 'logout' },
+  ],
+  View: [
+    { label: 'Toggle Scanlines', action: 'scanlines' },
+    { label: 'Toggle Vignette', action: 'vignette' },
+    { label: 'Toggle Beep Sound', action: 'beep' },
+  ],
+  Theme: [
+    { label: 'Phosphor: Vintage Gray', action: 'theme-gray' },
+    { label: 'Phosphor: Terminal Green', action: 'theme-green' },
+    { label: 'Phosphor: Amber CRT', action: 'theme-amber' },
+  ],
+  Diagnostics: [
+    { label: 'Repository Galaxy', action: 'tab-galaxy' },
+    { label: 'Engineering Traits', action: 'tab-traits' },
+    { label: 'Language Path Flow', action: 'tab-languages' },
+    { label: 'Coding Hour Cycles', action: 'tab-clock' },
+  ],
+  Help: [
+    { label: 'System Specifications', action: 'about' },
+    { label: 'DevWrap Manual v1.2', action: 'manual' },
+  ]
+};
 
 export default function Workspace() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { profileData, setUsername } = useProfileStore();
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [shareModal, setShareModal] = useState<{ title: string; content: string } | null>(null);
+  
+  // Custom workstation preferences
+  const [currentTab, setCurrentTab] = useState<TabType>('overview');
+  const [scanlines, setScanlines] = useState(true);
+  const [vignette, setVignette] = useState(true);
+  const [audioOn, setAudioOn] = useState(true);
+  const [theme, setTheme] = useState<'gray' | 'green' | 'amber'>('gray');
+  
+  // Real-time system states
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [uptime, setUptime] = useState(0);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Custom alerts
+  const [systemAlert, setSystemAlert] = useState<string | null>(null);
   const [openBadge, setOpenBadge] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<string>(SECTIONS[0].id);
-  const prefersReducedMotion = useReducedMotion();
 
-  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  // Clock updates
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Uptime updates
+  useEffect(() => {
+    const timer = setInterval(() => setUptime(u => u + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Click outside to close dropdowns
+  useEffect(() => {
+    const closeAll = () => setOpenDropdown(null);
+    window.addEventListener('click', closeAll);
+    return () => window.removeEventListener('click', closeAll);
+  }, []);
+
+  // Sync profile data or redirect
+  useEffect(() => {
+    const profileUsername = profileData?.profile?.username?.toLowerCase();
+    const urlUsername = username?.toLowerCase();
+
+    if (urlUsername && (!profileData || profileUsername !== urlUsername)) {
+      setUsername(username || null);
+      navigate('/loading', { replace: true });
+    }
+  }, [profileData, username, setUsername, navigate]);
+
+  // Audio synthesizer beep player
+  const triggerBeep = (freq = 800, duration = 0.04, type: OscillatorType = 'sine') => {
+    if (!audioOn) return;
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = type;
+      osc.frequency.value = freq;
+      
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + duration);
+    } catch (e) {
+      // Ignored
+    }
+  };
+
+  const handleTabChange = (tab: TabType) => {
+    triggerBeep(1000, 0.03);
+    setCurrentTab(tab);
+  };
+
+  const toggleDropdown = (e: React.MouseEvent, menu: string) => {
+    e.stopPropagation();
+    triggerBeep(900, 0.02);
+    setOpenDropdown(prev => prev === menu ? null : menu);
+  };
+
+  const formatUptime = (sec: number) => {
+    const h = Math.floor(sec / 3600).toString().padStart(2, '0');
+    const m = Math.floor((sec % 3600) / 60).toString().padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  };
 
   const numbersStats = useMemo(() => {
     if (!profileData) {
@@ -123,562 +203,714 @@ export default function Workspace() {
     };
   }, [profileData]);
 
-  // Font injection — Plus Jakarta Sans for display/body, JetBrains Mono for
-  // every terminal/diff/label surface, since the mono treatment is now load
-  // bearing rather than a Tailwind fallback.
-  useEffect(() => {
-    const link = document.createElement('link');
-    link.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap';
-    link.rel = 'stylesheet';
-    document.head.appendChild(link);
-    return () => {
-      document.head.removeChild(link);
-    };
-  }, []);
-
-  useEffect(() => {
-    const profileUsername = profileData?.profile?.username?.toLowerCase();
-    const urlUsername = username?.toLowerCase();
-
-    if (urlUsername && (!profileData || profileUsername !== urlUsername)) {
-      setUsername(username || null);
-      navigate('/loading', { replace: true });
-    }
-  }, [profileData, username, setUsername, navigate]);
-
-  // Section-aware navigation rail
-  useEffect(() => {
-    if (!profileData) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible?.target.id) setActiveSection(visible.target.id);
-      },
-      { threshold: [0.3, 0.6], rootMargin: '-15% 0px -55% 0px' }
-    );
-    Object.values(sectionRefs.current).forEach((el) => el && observer.observe(el));
-    return () => observer.disconnect();
-  }, [profileData]);
-
-  const scrollToSection = (id: string) => {
-    sectionRefs.current[id]?.scrollIntoView({
-      behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      block: 'start',
-    });
-  };
-
-  const triggerToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
-  };
-
   if (!profileData) {
     return (
-      <div className="min-h-screen bg-[#0a0e0a] flex flex-col items-center justify-center text-neutral-500 font-mono gap-4">
-        <svg className="animate-spin h-6 w-6 text-[#3fb950]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <span className="text-[10px] tracking-widest uppercase font-semibold">compiling your year...</span>
-      </div>
+      <main className="min-h-screen bg-[#E3E3E3] text-black font-mono flex items-center justify-center p-4 selection:bg-black selection:text-white relative crt-screen">
+        <div className="crt-overlay" />
+        <div className="crt-vignette" />
+        <div className="text-center space-y-4">
+          <p className="text-lg font-bold tracking-widest cursor-retro-blink uppercase">
+            [░░░░░░░░░░░░░░░░░░░░] SYNCHRONIZING CORE METRICS...
+          </p>
+          <p className="text-xs text-neutral-600">READING REPOSITORY CALENDAR DATA SEGMENTS.</p>
+        </div>
+      </main>
     );
   }
 
   const { profile, repositories, stats, aiSummary, archetype, archetypeSentence } = profileData;
 
-  const handleBack = () => navigate('/');
-
-  const quietDays = Math.max(0, 365 - numbersStats.activeDays);
+  const handleBack = () => {
+    triggerBeep(600, 0.1, 'square');
+    navigate('/');
+  };
 
   const handleExport = () => {
     const node = document.getElementById('recap-poster');
     if (!node) return;
 
-    triggerToast('Generating story poster...');
+    triggerBeep(1400, 0.08);
+    setSystemAlert('GENERATING RETRO POSTER CAPTURE...');
 
     import('html-to-image').then((htmlToImage) => {
       htmlToImage
         .toPng(node, {
           cacheBust: true,
-          backgroundColor: '#0a0e0a',
-          style: {
-            transform: 'scale(1)',
-            transformOrigin: 'top left',
-            width: node.offsetWidth + 'px',
-            height: node.offsetHeight + 'px',
-          },
+          backgroundColor: '#E3E3E3',
         })
         .then((dataUrl) => {
           const link = document.createElement('a');
           link.download = `devwrap-${profile.username}-story.png`;
           link.href = dataUrl;
           link.click();
-          triggerToast('✓ Story poster downloaded');
+          setSystemAlert('✓ PNG REPORT DOWNLOADED');
         })
         .catch((err) => {
-          console.error('Failed generating png recap card:', err);
-          triggerToast('Failed to generate poster');
+          console.error(err);
+          setSystemAlert('EXPORT FAULT: CAPTURE FAILED');
         });
     });
   };
 
   const handleShare = () => {
+    triggerBeep(1100, 0.04);
     const url = window.location.href;
     navigator.clipboard.writeText(url).then(() => {
-      const short = url.length > 46 ? `${url.slice(0, 43)}...` : url;
-      triggerToast(`✓ Copied link: ${short}`);
+      setSystemAlert('LINK COPIED TO WORKSPACE BUFFER');
     });
   };
 
-  // Instead of copying blind, show exactly what will be shared and let the
-  // person confirm — they should never have to paste somewhere just to find
-  // out what got put on their clipboard.
-  const handleGenerateStory = () => {
-    const primaryLang = stats.topLanguages[0]?.language || 'TypeScript';
-    const text = `My DevWrap 2026 Recap:\n👤 Archetype: ${archetype || 'THE BUILDER'}\n🔥 Active Days: ${numbersStats.activeDays}\n⚡ Commits: ${numbersStats.commits}\n🪐 Top Stack: ${primaryLang}\nCheck your coding story at: ${window.location.href}`;
-    setShareModal({ title: 'Story card text', content: text });
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    triggerBeep(1300, 0.05);
+    setSearchModalOpen(false);
+    navigate(`/loading`);
+    setUsername(searchQuery.trim());
   };
 
-  const copyModalContent = () => {
-    if (!shareModal) return;
-    navigator.clipboard.writeText(shareModal.content).then(() => {
-      triggerToast('✓ Copied to clipboard');
-      setShareModal(null);
-    });
+  const handleMenuAction = (action: string) => {
+    triggerBeep(1200, 0.04);
+    switch (action) {
+      case 'search':
+        setSearchModalOpen(true);
+        break;
+      case 'export':
+        handleExport();
+        break;
+      case 'share':
+        handleShare();
+        break;
+      case 'logout':
+        handleBack();
+        break;
+      case 'scanlines':
+        setScanlines(!scanlines);
+        break;
+      case 'vignette':
+        setVignette(!vignette);
+        break;
+      case 'beep':
+        setAudioOn(!audioOn);
+        break;
+      case 'theme-gray':
+        setTheme('gray');
+        break;
+      case 'theme-green':
+        setTheme('green');
+        break;
+      case 'theme-amber':
+        setTheme('amber');
+        break;
+      case 'tab-galaxy':
+        setCurrentTab('galaxy');
+        break;
+      case 'tab-traits':
+        setCurrentTab('traits');
+        break;
+      case 'tab-languages':
+        setCurrentTab('languages');
+        break;
+      case 'tab-clock':
+        setCurrentTab('clock');
+        break;
+      case 'ping':
+        setSystemAlert('PINGING PIPELINE GATEWAY: ONLINE [127.0.0.1 replied]');
+        break;
+      case 'reset':
+        setSystemAlert('CLEARED PIPELINE ANALYSIS BUFFERS');
+        break;
+      case 'baud':
+        setSystemAlert('BAUD SPEED AT FULL CHANNEL LIMIT');
+        break;
+      case 'about':
+        setSystemAlert('DEVWRAP DEVELOPMENT PLATFORM // CORE DATA PIPELINE');
+        break;
+      case 'manual':
+        setSystemAlert('HELP: NAVIGATE GRAPHICS VIA LEFT SIDEBAR NAVIGATION');
+        break;
+    }
   };
 
-  const archetypeDiff = getArchetypeDiff(archetype || 'THE BUILDER');
+  // Active theme mapping variables
+  const activeTheme = THEME_STYLES[theme];
 
   return (
-    <main
-      className="min-h-screen bg-[var(--bg)] text-neutral-400 font-sans p-4 md:p-8 flex flex-col items-center justify-start select-none relative selection:bg-[var(--add)]/20 selection:text-[var(--add)]"
-      style={{ ...TOKENS, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+    <div 
+      className="min-h-screen font-mono p-4 selection:bg-black selection:text-white flex items-center justify-center relative crt-screen select-none"
+      style={{
+        backgroundColor: activeTheme['--bg'],
+        color: activeTheme['--text'],
+        borderColor: activeTheme['--border'],
+        ...activeTheme
+      } as React.CSSProperties}
     >
-      {/* Toast */}
-      <AnimatePresence>
-        {toastMessage && (
-          <motion.div
-            role="status"
-            aria-live="polite"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
-            className="fixed top-6 z-50 px-5 py-2.5 bg-[var(--panel)] border border-[var(--border)] rounded-xl shadow-2xl text-[11px] font-mono text-white tracking-wide max-w-[90vw] truncate"
-          >
-            {toastMessage}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* CRT overlay scanlines */}
+      {scanlines && <div className="crt-overlay" />}
+      {vignette && <div className="crt-vignette" />}
 
-      {/* Share / story preview modal */}
+      {/* CENTRAL CABINET BOX CONTAINER */}
+      <div 
+        className="w-full max-w-5xl h-[92vh] max-h-[820px] flex flex-col border-4 border-double border-black shadow-[8px_8px_0px_#000000] relative z-10 overflow-hidden"
+        style={{
+          backgroundColor: activeTheme['--bg'],
+          borderColor: activeTheme['--border']
+        }}
+      >
+        {/* TOP SYSTEM HEADER */}
+        <header className="w-full bg-black text-white text-xs select-none border-b border-black relative z-50 flex items-center justify-between px-4 py-2.5 shrink-0">
+          <div className="flex items-center space-x-6">
+            <span className="font-heading font-extrabold text-sm tracking-widest cursor-pointer hover:underline" onClick={handleBack}>
+              * DEVWRAP *
+            </span>
+            <span className="text-[10px] bg-neutral-800 text-neutral-300 px-2 py-0.5 rounded-none font-bold select-none uppercase tracking-wide">
+              [ver. 1.2.83]
+            </span>
+            
+            {/* Dropdowns */}
+            <nav className="flex space-x-4 items-center">
+              {Object.keys(dropdownMenus).map((menuName) => (
+                <div key={menuName} className="relative">
+                  <button
+                    onClick={(e) => toggleDropdown(e, menuName)}
+                    className={`px-2 py-0.5 uppercase tracking-wider font-bold transition-none hover:bg-white hover:text-black cursor-pointer bg-transparent border-0 outline-none ${openDropdown === menuName ? 'bg-white text-black' : ''}`}
+                  >
+                    {menuName}
+                  </button>
+                  {openDropdown === menuName && (
+                    <ul className="absolute left-0 mt-2 bg-black border border-white p-1 w-48 text-[11px] rounded-none divide-y divide-neutral-900 shadow-2xl">
+                      {dropdownMenus[menuName as keyof typeof dropdownMenus].map((item) => (
+                        <li key={item.label}>
+                          <button
+                            onClick={() => handleMenuAction(item.action)}
+                            className="w-full text-left text-white px-3 py-1.5 hover:bg-white hover:text-black cursor-pointer bg-transparent border-0 outline-none block rounded-none uppercase font-mono font-medium"
+                          >
+                            {item.label}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </nav>
+          </div>
+
+          {/* Date Time */}
+          <div className="hidden sm:block text-[11px] font-bold tracking-widest text-neutral-400">
+            {currentTime.toLocaleDateString('en-US', { day: '2-digit', month: 'short' }).toUpperCase()} // {currentTime.toLocaleTimeString()}
+          </div>
+        </header>
+
+        {/* WORKSPACE MIDDLE BODY */}
+        <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+          
+          {/* LEFT VERTICAL SIDEBAR (DARK THEME) */}
+          <aside className="w-full md:w-60 bg-black text-white p-4 flex flex-col justify-between border-b md:border-b-0 md:border-r border-black select-none rounded-none shrink-0 z-20">
+            <div className="space-y-6">
+              {/* Logo */}
+              <div className="border border-white p-3 text-center space-y-1 rounded-none bg-neutral-950">
+                <span className="block text-[10px] text-neutral-500 uppercase tracking-widest font-bold">// ANALYTICS.SYS</span>
+                <span className="block text-sm font-heading font-extrabold tracking-widest uppercase text-white cursor-pointer" onClick={() => handleTabChange('overview')}>
+                  DEVWRAP.OS
+                </span>
+              </div>
+
+              {/* Nav List */}
+              <nav className="flex flex-col space-y-1">
+                {[
+                  { id: 'overview', label: 'Overview', icon: Home },
+                  { id: 'galaxy', label: 'Repo Galaxy', icon: Cpu },
+                  { id: 'traits', label: 'Skill Matrix', icon: BarChart2 },
+                  { id: 'languages', label: 'Language Path', icon: FileText },
+                  { id: 'clock', label: 'Coding Cycles', icon: Clock },
+                  { id: 'badges', label: 'Achievements', icon: Award },
+                  { id: 'settings', label: 'Preferences', icon: Settings },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  const active = currentTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleTabChange(item.id as TabType)}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 font-bold uppercase tracking-wider text-xs rounded-none border outline-none transition-none cursor-pointer ${
+                        active 
+                          ? 'bg-white text-black border-white' 
+                          : 'bg-transparent text-white border-transparent hover:border-white'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Icon className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            <div className="pt-6 border-t border-neutral-900 hidden md:block">
+              <button
+                onClick={handleBack}
+                className="w-full flex items-center space-x-3 px-3 py-2 border border-transparent hover:border-red-500 text-red-500 font-bold uppercase tracking-wider text-xs rounded-none bg-transparent cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Disconnect Node</span>
+              </button>
+            </div>
+          </aside>
+
+          {/* MAIN WORKSPACE CANVAS */}
+          <main className="flex-1 flex flex-col p-4 overflow-y-auto" id="recap-poster" style={{ backgroundColor: activeTheme['--bg'] }}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentTab}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.05 }}
+                className="flex-1 flex flex-col space-y-6"
+              >
+                
+                {/* TAB 1: OVERVIEW */}
+                {currentTab === 'overview' && (
+                  <>
+                    {/* User Profile Header Panel */}
+                    <div className="border border-black p-4 bg-white/40 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center rounded-none shadow-[2px_2px_0px_#000000]"
+                         style={{ backgroundColor: activeTheme['--panel'], borderColor: activeTheme['--border'] }}>
+                      {/* Left: Dithered Avatar */}
+                      <div className="lg:col-span-2 flex justify-center lg:justify-start">
+                        <img
+                          src={profile.avatarUrl}
+                          alt={profile.name}
+                          className="w-20 h-20 border border-black dithered-img rounded-none select-none"
+                        />
+                      </div>
+
+                      {/* Center: User Info */}
+                      <div className="lg:col-span-6 space-y-2 text-center lg:text-left">
+                        <div className="flex flex-col lg:flex-row lg:items-center gap-2">
+                          <h2 className="text-xl font-bold uppercase tracking-wide">{profile.name || profile.username}</h2>
+                          <span className="inline-block bg-black text-white text-[9px] uppercase px-2 py-0.5 rounded-none font-bold tracking-wider max-w-max mx-auto lg:mx-0">
+                            {archetype || 'THE BUILDER'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-neutral-600 font-mono tracking-normal leading-relaxed">
+                          NODE IDENTIFIER: @{profile.username} // SEGMENTED SINCE: {profile.createdAt ? new Date(profile.createdAt).getFullYear() : '1983'}
+                        </p>
+                        <div className="border border-black border-dashed p-2 text-xs bg-white/30 rounded-none italic text-neutral-800">
+                          "{profile.bio || 'STABLE SYSTEM RECAP PIPELINE ACTIVE.'}"
+                        </div>
+                      </div>
+
+                      {/* Right: Key Metrics / Stats */}
+                      <div className="lg:col-span-4 border border-black p-3 bg-white/60 space-y-1 text-xs rounded-none"
+                           style={{ borderColor: activeTheme['--border'] }}>
+                        <p className="font-bold border-b border-black pb-1 uppercase tracking-wider">// REPOSITORY STATS SUMMARY</p>
+                        <div className="grid grid-cols-2 gap-x-2 gap-y-1">
+                          <div>REPOS: <span className="font-bold">{numbersStats.projects}</span></div>
+                          <div>STREAK: <span className="font-bold">{stats.streak}d</span></div>
+                          <div>COMMITS: <span className="font-bold">{numbersStats.commits}</span></div>
+                          <div>DNA INDEX: <span className="font-bold">{stats.aiScore}%</span></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Two-Column Analytics Performance Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                      {/* Left Column */}
+                      <section className="lg:col-span-7 space-y-6">
+                        {/* AI Observations Terminal */}
+                        <div className="border border-black bg-black text-white p-5 rounded-none shadow-[2px_2px_0px_#000000]">
+                          <div className="flex items-center justify-between border-b border-neutral-800 pb-2 mb-3">
+                            <span className="text-[10px] font-bold tracking-widest text-neutral-500 uppercase">// LLM_INSIGHT_ENGINE://OBSERVATIONS_LOG</span>
+                            <Terminal className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="space-y-2 text-xs leading-relaxed font-mono select-text">
+                            {aiSummary && aiSummary.length > 0 ? (
+                              aiSummary.map((line, idx) => (
+                                <p key={idx} className="text-white">{`> ${line.toUpperCase()}`}</p>
+                              ))
+                            ) : (
+                              <>
+                                <p className="text-white">{`> DIALECT STACKS ACTIVE ACROSS ${numbersStats.projects} REPOSITORIES.`}</p>
+                                <p className="text-white">{`> COMMITS ACTIVITY PIPELINE VERIFIED.`}</p>
+                                <p className="text-white">{`> ARCHETYPE SET FOR STRUCTURAL DEPLOYMENT.`}</p>
+                              </>
+                            )}
+                            <div className="flex items-center gap-1">
+                              <span>&gt;</span>
+                              <span className="w-2.5 h-4 bg-white inline-block animate-pulse" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* RPG Card Summary panel */}
+                        <RPGCard profileData={profileData} />
+                      </section>
+
+                      {/* Right Column */}
+                      <section className="lg:col-span-5 flex flex-col justify-between border border-black p-4 bg-white/40 rounded-none shadow-[2px_2px_0px_#000000]"
+                               style={{ backgroundColor: activeTheme['--panel'], borderColor: activeTheme['--border'] }}>
+                        <div className="w-full">
+                          <div className="text-[10px] font-bold border-b border-black pb-1.5 uppercase tracking-wider text-neutral-500 mb-2">// COGNITIVE TRAITS RADAR</div>
+                          <div className="flex justify-center items-center py-4 bg-white/50 border border-black rounded-none">
+                            <RadarChart stats={stats} repositories={repositories} profile={profile} />
+                          </div>
+                        </div>
+
+                        <div className="border border-black bg-white/80 p-3 mt-4 text-[11px] rounded-none">
+                          <p className="font-bold mb-1 uppercase">// SYSTEM DATA CHANNEL RESOLUTION</p>
+                          <p className="text-neutral-700 leading-normal uppercase">
+                            TRAIT PROFILE MAPS CORE STRENGTHS (STR), LOGIC ACCELERATION (INT), AND CONSISTENCY CYCLE TRAITS (DEX). RADAR GEOMETRY RENDERS THE ACTIVE COGNITIVE TRAITS BALANCED INDEX.
+                          </p>
+                        </div>
+                      </section>
+                    </div>
+
+                    {/* BOTTOM SYSTEM PIPELINE NOTICE */}
+                    <div className="border border-black bg-white p-3 rounded-none mt-2"
+                         style={{ borderColor: activeTheme['--border'], backgroundColor: activeTheme['--panel'] }}>
+                      <div className="text-[10px] font-bold border-b border-black pb-1 text-neutral-600 uppercase tracking-widest">// DATA PIPELINE NOTICES</div>
+                      <p className="text-xs text-black font-mono leading-relaxed mt-2 uppercase">
+                        * DATA RETRIEVED FROM GITHUB V3 API GATEWAY. COMPLETED PIPELINE COMPILATION SEGMENT ON USER NODE: @{profile.username.toUpperCase()}.<br/>
+                        * PIPELINE RESOLVED AT PORT 5000 ACTIVE. NO INTEGRITY ISSUES DETECTED.
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                {/* TAB 2: REPOSITORY GALAXY */}
+                {currentTab === 'galaxy' && (
+                  <div className="space-y-4">
+                    <div className="border-b border-black border-dashed pb-2">
+                      <h2 className="text-xl font-bold uppercase tracking-wider font-heading">* REPOSITORY GALAXY DIAGNOSTICS *</h2>
+                      <p className="text-xs text-neutral-500">MAPPING THE PHYSICAL TOPOGRAPHY OF SOURCE CODE SYSTEMS</p>
+                    </div>
+
+                    <div className="border-4 border-double border-black p-4 bg-white/20 min-h-[500px] flex items-center justify-center rounded-none relative overflow-hidden"
+                         style={{ borderColor: activeTheme['--border'] }}>
+                      <RepositoryGalaxy repositories={repositories} avatarUrl={profile.avatarUrl} />
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 3: SKILL MATRIX */}
+                {currentTab === 'traits' && (
+                  <div className="space-y-4">
+                    <div className="border-b border-black border-dashed pb-2">
+                      <h2 className="text-xl font-bold uppercase tracking-wider font-heading">* SKILL MATRIX DIAGNOSTICS *</h2>
+                      <p className="text-xs text-neutral-500">HIERARCHICAL TREE CLASSIFYING TOP SOURCE SYSTEM FRAMEWORKS</p>
+                    </div>
+
+                    <div className="border-4 border-double border-black p-4 bg-white/20 min-h-[480px] rounded-none"
+                         style={{ borderColor: activeTheme['--border'] }}>
+                      <TechTree stats={stats} repositories={repositories} />
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 4: LANGUAGE PATH */}
+                {currentTab === 'languages' && (
+                  <div className="space-y-4">
+                    <div className="border-b border-black border-dashed pb-2">
+                      <h2 className="text-xl font-bold uppercase tracking-wider font-heading">* LANGUAGE EVOLUTION FLOW *</h2>
+                      <p className="text-xs text-neutral-500">SANKEY ROUTING DIALECT WEIGHTS DIRECTLY TO STACK SYSTEMS</p>
+                    </div>
+
+                    <div className="border-4 border-double border-black p-6 bg-white/20 min-h-[350px] flex items-center justify-center rounded-none"
+                         style={{ borderColor: activeTheme['--border'] }}>
+                      <SankeyDiagram stats={stats} />
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 5: CODING CLOCK */}
+                {currentTab === 'clock' && (
+                  <div className="space-y-4">
+                    <div className="border-b border-black border-dashed pb-2">
+                      <h2 className="text-xl font-bold uppercase tracking-wider font-heading">* DAILY CYCLE ACTIVITY CLOCK *</h2>
+                      <p className="text-xs text-neutral-500">ACTIVE SEGMENT CYCLES CORRELATING COMMIT Cadence HOURS</p>
+                    </div>
+
+                    <div className="border-4 border-double border-black p-6 bg-white/20 min-h-[480px] flex items-center justify-center rounded-none"
+                         style={{ borderColor: activeTheme['--border'] }}>
+                      <div className="w-full max-w-2xl bg-white/50 border border-black p-6 rounded-none flex items-center justify-center">
+                        <CodingClock username={profile.username} />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 6: ACHIEVEMENTS */}
+                {currentTab === 'badges' && (
+                  <div className="space-y-6">
+                    <div className="border-b border-black border-dashed pb-2">
+                      <h2 className="text-xl font-bold uppercase tracking-wider font-heading">* ACHIEVEMENT METRICS CABINET *</h2>
+                      <p className="text-xs text-neutral-500">STATUS BADGES UNLOCKED VIA VERIFIED ACTIVITY PIPELINES</p>
+                    </div>
+
+                    <div className="border border-black p-6 bg-white/40 space-y-6 rounded-none"
+                         style={{ backgroundColor: activeTheme['--panel'], borderColor: activeTheme['--border'] }}>
+                      <div className="border-b border-black border-dashed pb-2">
+                        <h3 className="text-sm font-bold uppercase tracking-widest">// SELECT ATTRIBUTE SHIELD TO READ CRITERIA</h3>
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-center gap-6 py-4">
+                        {BADGES.map((b) => {
+                          const isOpen = openBadge === b.id;
+                          return (
+                            <button
+                              key={b.id}
+                              onClick={() => { triggerBeep(1200, 0.03); setOpenBadge(isOpen ? null : b.id); }}
+                              className={`flex flex-col items-center p-3 border rounded-none transition-none cursor-pointer bg-transparent outline-none ${
+                                isOpen ? 'bg-black text-white border-black' : 'border-black hover:bg-neutral-200/50'
+                              }`}
+                              style={{ borderColor: activeTheme['--border'] }}
+                            >
+                              <span className="text-3xl mb-1">{b.emoji}</span>
+                              <span className="text-[10px] font-bold uppercase font-mono">{b.title}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="border border-black bg-white/90 p-4 text-center min-h-[50px] flex items-center justify-center text-xs rounded-none font-mono">
+                        {openBadge ? (
+                          (() => {
+                            const b = BADGES.find((x) => x.id === openBadge)!;
+                            return (
+                              <p className="text-black uppercase">
+                                <span className="font-bold">[{b.title}]</span> : {b.desc(numbersStats, stats)}
+                              </p>
+                            );
+                          })()
+                        ) : (
+                          <p className="text-neutral-500 uppercase">SELECT ATTRIBUTE KEY TO UNLOCK DETAILED PIPELINE METRICS</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB 7: PREFERENCES */}
+                {currentTab === 'settings' && (
+                  <div className="space-y-6">
+                    <div className="border-b border-black border-dashed pb-2">
+                      <h2 className="text-xl font-bold uppercase tracking-wider font-heading">* PREFERENCES PANEL *</h2>
+                      <p className="text-xs text-neutral-500">CONFIGURE WORKSTATION VISUALS AND AUDIO SPEAKER SIGNALS</p>
+                    </div>
+
+                    <div className="border border-black bg-white/40 p-6 rounded-none space-y-6 max-w-xl"
+                         style={{ backgroundColor: activeTheme['--panel'], borderColor: activeTheme['--border'] }}>
+                      
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-black pb-4 border-dashed gap-4">
+                        <div>
+                          <h4 className="text-xs font-bold uppercase">CRT INTERLACE SCANLINES</h4>
+                          <span className="text-[10px] text-neutral-500 font-mono">TOGGLE STRIPED OVERLAY CRT BEAM EMULATION</span>
+                        </div>
+                        <button
+                          onClick={() => { triggerBeep(1200, 0.03); setScanlines(!scanlines); }}
+                          className={`px-4 py-2 border text-xs font-bold uppercase rounded-none transition-none cursor-pointer outline-none ${
+                            scanlines ? 'btn-retro-active' : 'btn-retro'
+                          }`}
+                        >
+                          {scanlines ? 'ON [ FILTER ACTIVE ]' : 'OFF [ FILTER DISABLED ]'}
+                        </button>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-black pb-4 border-dashed gap-4">
+                        <div>
+                          <h4 className="text-xs font-bold uppercase">CRT SHADOW VIGNETTE</h4>
+                          <span className="text-[10px] text-neutral-500 font-mono font-normal">EMULATE RECESSED ROUNDED CURVE SCREEN EDGES</span>
+                        </div>
+                        <button
+                          onClick={() => { triggerBeep(1200, 0.03); setVignette(!vignette); }}
+                          className={`px-4 py-2 border text-xs font-bold uppercase rounded-none transition-none cursor-pointer outline-none ${
+                            vignette ? 'btn-retro-active' : 'btn-retro'
+                          }`}
+                        >
+                          {vignette ? 'ON [ SHADING ACTIVE ]' : 'OFF [ SHADING DISABLED ]'}
+                        </button>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-black pb-4 border-dashed gap-4">
+                        <div>
+                          <h4 className="text-xs font-bold uppercase">INTERNAL SPEAKER SOUND</h4>
+                          <span className="text-[10px] text-neutral-500 font-mono font-normal">SYNTHESIZE Tactile 1-BIT SYSTEM SPEAKER AUDIOMETRICS</span>
+                        </div>
+                        <button
+                          onClick={() => { setAudioOn(!audioOn); triggerBeep(1400, 0.05); }}
+                          className={`px-4 py-2 border text-xs font-bold uppercase rounded-none transition-none cursor-pointer outline-none ${
+                            audioOn ? 'btn-retro-active' : 'btn-retro'
+                          }`}
+                        >
+                          {audioOn ? 'ON [ BEARS ACTIVE ]' : 'OFF [ MUTED ]'}
+                        </button>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="text-xs font-bold uppercase">GLASS MONITOR PHOSPHOR COATING (THEME)</h4>
+                          <span className="text-[10px] text-neutral-500 font-mono">CHOOSE TUBE ELECTRON EMITTER COLOUR EMULATOR</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            { id: 'gray', label: 'VINTAGE GRAY' },
+                            { id: 'green', label: 'TERMINAL GREEN' },
+                            { id: 'amber', label: 'AMBER CRT' },
+                          ].map((th) => (
+                            <button
+                              key={th.id}
+                              onClick={() => { setTheme(th.id as 'gray' | 'green' | 'amber'); triggerBeep(1300, 0.04); }}
+                              className={`px-4 py-2 border text-xs font-bold uppercase rounded-none transition-none cursor-pointer outline-none ${
+                                theme === th.id ? 'btn-retro-active' : 'btn-retro'
+                              }`}
+                            >
+                              {th.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* BOTTOM STATUS ROW ACTIONS */}
+            <div className="pt-6 border-t border-black border-dashed flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+              <div className="flex items-center space-x-2 text-[10px] text-neutral-600 font-bold uppercase">
+                <span className="w-2 h-2 bg-black inline-block" style={{ backgroundColor: activeTheme['--text'] }} />
+                <span>DATA STACKS RECAP: SECURE // PORT: 5000 ONLINE</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleShare}
+                  className="px-4 py-2 btn-retro text-xs rounded-none flex items-center space-x-2 font-bold"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>SHARE CONNECTION</span>
+                </button>
+                <button
+                  onClick={handleExport}
+                  className="px-4 py-2 btn-retro text-xs rounded-none flex items-center space-x-2 font-bold"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>DOWNLOAD STORIES PNG</span>
+                </button>
+              </div>
+            </div>
+          </main>
+        </div>
+
+        {/* BOTTOM SYSTEM NOTICE & STATUS BAR */}
+        <footer className="w-full bg-black text-white text-xs py-2 px-4 select-none border-t border-black relative z-40 shrink-0">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-[11px] font-bold tracking-widest text-center md:text-left">
+            <div className="flex items-center justify-center md:justify-start space-x-2">
+              <span className="w-2.5 h-2.5 bg-green-500 animate-ping inline-block rounded-full shrink-0" />
+              <span className="text-white">DEVWRAP PIPELINE ON</span>
+            </div>
+            <div className="text-center md:text-left">
+              UPTIME: {formatUptime(uptime)}
+            </div>
+            <div className="text-center md:text-left text-neutral-300 font-bold">
+              REPOS: {numbersStats.projects} | COMMITS: {numbersStats.commits}
+            </div>
+            <div className="text-center md:text-right text-[10px] text-neutral-500 uppercase">
+              SYS_OP: @{profile.username.toUpperCase()}
+            </div>
+          </div>
+        </footer>
+      </div>
+
+      {/* SEARCH USER MODAL */}
       <AnimatePresence>
-        {shareModal && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+        {searchModalOpen && (
+          <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
-            onClick={() => setShareModal(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           >
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-label={shareModal.title}
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: prefersReducedMotion ? 0 : 0.15 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md bg-[var(--panel)] border border-[var(--border)] rounded-2xl overflow-hidden"
+            <motion.div 
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="w-full max-w-md bg-[#E3E3E3] border-4 border-double border-black p-6 space-y-6 relative rounded-none text-black"
             >
-              <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
-                <span className="text-xs font-mono uppercase tracking-widest text-neutral-400">{shareModal.title}</span>
-                <button
-                  onClick={() => setShareModal(null)}
-                  aria-label="Close preview"
-                  className="text-neutral-500 hover:text-white transition-colors bg-transparent border-0 cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+              <button 
+                onClick={() => { triggerBeep(600, 0.04); setSearchModalOpen(false); }}
+                className="absolute top-4 right-4 bg-transparent border-0 cursor-pointer text-black"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="text-center space-y-1">
+                <h3 className="font-heading font-extrabold text-xl tracking-widest uppercase">* DATAPORT SEARCH QUERY *</h3>
+                <p className="text-[10px] text-neutral-500 uppercase">ENTER ACCOUNT NAME TO RETRIEVE AND ANALYZE</p>
               </div>
-              <pre className="px-5 py-4 text-xs font-mono text-neutral-300 whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto">
-                {shareModal.content}
-              </pre>
-              <div className="px-5 py-4 border-t border-[var(--border)] flex justify-end">
-                <button
-                  onClick={copyModalContent}
-                  className="px-4 py-2 bg-[var(--add)] hover:bg-[var(--add-dim)] text-black text-xs font-semibold rounded-lg flex items-center gap-2 cursor-pointer transition-colors"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  Copy to clipboard
-                </button>
-              </div>
+
+              <form onSubmit={handleSearchSubmit} className="space-y-4">
+                <div className="border border-black bg-white px-3 py-2 flex items-center rounded-none">
+                  <span className="text-neutral-500 text-xs font-bold mr-1 select-none">github.com/</span>
+                  <input
+                    type="text"
+                    placeholder="username"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    autoFocus
+                    autoComplete="off"
+                    spellCheck="false"
+                    className="flex-1 bg-transparent border-none text-black outline-none text-xs font-mono"
+                  />
+                </div>
+
+                <div className="flex justify-end space-x-2 pt-2">
+                  <button 
+                    type="button"
+                    onClick={() => { triggerBeep(600, 0.04); setSearchModalOpen(false); }}
+                    className="px-4 py-2 border border-black text-xs font-bold uppercase rounded-none bg-transparent hover:bg-neutral-200"
+                  >
+                    CANCEL
+                  </button>
+                  <button 
+                    type="submit"
+                    className="px-6 py-2 btn-retro text-xs font-bold rounded-none"
+                  >
+                    RETRIEVE RECAP ▶
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* TOP HEADER */}
-      <div className="w-full max-w-5xl flex items-center justify-between py-4 border-b border-[var(--border-soft)] mb-8">
-        <button
-          onClick={handleBack}
-          className="flex items-center space-x-2 text-xs font-mono text-neutral-500 hover:text-white transition-colors bg-transparent border-0 outline-none cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>cd ..</span>
-        </button>
-        <div className="flex items-center space-x-2 text-[10px] font-mono uppercase tracking-widest text-neutral-600">
-          <span>DevWrap // 2026 // Overview</span>
-        </div>
-      </div>
-
-      {/* Section navigation rail — desktop: fixed left column of dots */}
-      <nav
-        aria-label="Jump to section"
-        className="hidden lg:flex flex-col gap-3 fixed left-6 top-1/2 -translate-y-1/2 z-40"
-      >
-        {SECTIONS.map((s) => {
-          const active = activeSection === s.id;
-          return (
+      {/* FLOATING SYSTEM MESSAGE NOTIFICATION */}
+      <AnimatePresence>
+        {systemAlert && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            transition={{ duration: 0.2 }}
+            className="fixed bottom-14 right-4 z-50 bg-black text-white border border-white px-4 py-3 rounded-none text-xs font-mono max-w-sm flex items-start justify-between gap-3 shadow-2xl select-none"
+          >
+            <div className="space-y-1">
+              <span className="text-[9px] text-neutral-500 uppercase font-bold tracking-widest block">// SYSTEM LOG MESSAGE</span>
+              <p className="uppercase font-bold">{systemAlert}</p>
+            </div>
             <button
-              key={s.id}
-              onClick={() => scrollToSection(s.id)}
-              aria-current={active}
-              aria-label={s.title}
-              title={s.title}
-              className={`group relative flex items-center gap-2 bg-transparent border-0 cursor-pointer outline-none`}
+              onClick={() => setSystemAlert(null)}
+              className="bg-transparent border-0 text-white cursor-pointer hover:text-neutral-400 p-0"
             >
-              <span
-                className={`w-2 h-2 rounded-full transition-all ${
-                  active ? 'bg-[var(--add)] scale-125' : 'bg-neutral-700 group-hover:bg-neutral-500'
-                }`}
-              />
-              <span
-                className={`text-[10px] font-mono uppercase tracking-widest whitespace-nowrap transition-opacity ${
-                  active ? 'opacity-100 text-[var(--add)]' : 'opacity-0 group-hover:opacity-60 text-neutral-400'
-                }`}
-              >
-                {s.title}
-              </span>
+              [X]
             </button>
-          );
-        })}
-      </nav>
-
-      {/* Section navigation — mobile: fixed bottom dot row */}
-      <nav
-        aria-label="Jump to section"
-        className="lg:hidden fixed bottom-4 inset-x-0 z-40 flex justify-center gap-2 px-4"
-      >
-        <div className="flex items-center gap-2 bg-[var(--panel)]/90 backdrop-blur border border-[var(--border)] rounded-full px-3 py-2">
-          {SECTIONS.map((s) => {
-            const active = activeSection === s.id;
-            return (
-              <button
-                key={s.id}
-                onClick={() => scrollToSection(s.id)}
-                aria-current={active}
-                aria-label={s.title}
-                className="bg-transparent border-0 cursor-pointer p-1"
-              >
-                <span
-                  className={`block w-1.5 h-1.5 rounded-full transition-all ${
-                    active ? 'bg-[var(--add)] scale-150' : 'bg-neutral-700'
-                  }`}
-                />
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* RECAP POSTER */}
-      <div
-        id="recap-poster"
-        className="w-full max-w-5xl bg-[var(--bg)] rounded-3xl border border-[var(--border)] p-6 md:p-16 space-y-20 md:space-y-28 relative overflow-hidden"
-      >
-        <div className="absolute top-0 right-0 w-[550px] h-[550px] bg-[var(--add)]/[0.03] blur-[150px] rounded-full pointer-events-none" />
-
-        {/* HERO */}
-        <div className="flex flex-col justify-center min-h-[35vh] border-b border-[var(--border-soft)] pb-16 relative">
-          <div className="space-y-6">
-            <span className="text-[11px] font-mono bg-[var(--panel)] px-3 py-1.5 rounded border border-[var(--border)] text-[var(--add)] font-bold tracking-widest uppercase inline-block">
-              devwrap // build 2026
-            </span>
-            <h1 className="text-6xl md:text-8xl lg:text-9xl font-black text-white tracking-tight leading-none uppercase">
-              DEVWRAP
-            </h1>
-            <p className="text-lg md:text-xl text-neutral-400 max-w-2xl tracking-normal leading-relaxed font-light">
-              Your year of commits, compiled into one build.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-4 mt-12 p-4 bg-[var(--panel)]/60 rounded-2xl border border-[var(--border)] max-w-sm">
-            <img
-              src={profile.avatarUrl}
-              alt={profile.name}
-              className="w-16 h-16 rounded-xl object-cover border border-neutral-800 grayscale"
-            />
-            <div className="min-w-0">
-              <h2 className="text-base font-bold text-white tracking-tight">{profile.name}</h2>
-              <p className="text-xs text-neutral-500 font-mono">@{profile.username}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* OVERVIEW: metrics + archetype diff */}
-        <div id="overview" ref={(el) => { sectionRefs.current['overview'] = el; }} className="scroll-mt-24 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-          <div className="lg:col-span-7 space-y-12">
-            <div>
-              <span className="text-8xl md:text-9xl font-extralight text-white font-mono leading-none tracking-tighter block">
-                {numbersStats.commits}
-              </span>
-              <span className="text-xs font-mono text-neutral-500 uppercase tracking-widest block mt-4">commits compiled</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-8 pt-4">
-              <div>
-                <span className="text-5xl md:text-6xl lg:text-7xl font-extralight text-white font-mono leading-none tracking-tighter block">
-                  {numbersStats.projects}
-                </span>
-                <span className="text-xs font-mono text-neutral-500 uppercase tracking-widest block mt-3">active repositories</span>
-              </div>
-
-              <div>
-                <span className="text-5xl md:text-6xl lg:text-7xl font-extralight text-[var(--add)] font-mono leading-none tracking-tighter block">
-                  {numbersStats.activeDays}
-                </span>
-                <span className="text-xs font-mono text-neutral-500 uppercase tracking-widest block mt-3">days engaged</span>
-                <span className="text-[11px] font-mono text-[var(--del)] block mt-1">− {quietDays} quiet days</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Archetype as a diff block, not a decorative illustration */}
-          <div className="lg:col-span-5 bg-[var(--panel)] p-6 md:p-8 rounded-2xl border border-[var(--border)]">
-            <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-wider block mb-1">
-              profile type
-            </span>
-            <h3 className="text-3xl font-black text-[var(--add)] tracking-tight uppercase mb-5">
-              {archetype || 'THE BUILDER'}
-            </h3>
-            <div className="font-mono text-[13px] leading-relaxed rounded-lg overflow-hidden border border-[var(--border-soft)]">
-              {archetypeDiff.map((line, i) => (
-                <div
-                  key={i}
-                  className={`px-3 py-1.5 ${
-                    line.op === '+'
-                      ? 'bg-[var(--add)]/[0.08] text-[var(--add)]'
-                      : line.op === '-'
-                      ? 'bg-[var(--del)]/[0.08] text-[var(--del)]'
-                      : 'text-neutral-500'
-                  }`}
-                >
-                  <span className="select-none opacity-60 mr-2">{line.op}</span>
-                  {line.text}
-                </div>
-              ))}
-            </div>
-            <p className="text-sm text-neutral-400 font-medium tracking-tight leading-relaxed mt-5">
-              {archetypeSentence || 'You construct functional codebases, shipping clean repositories with clear layouts.'}
-            </p>
-          </div>
-        </div>
-
-        {/* GALAXY */}
-        <div id="galaxy" ref={(el) => { sectionRefs.current['galaxy'] = el; }} className="scroll-mt-24 space-y-6">
-          <SectionHeading eyebrow="repository galaxy" title="Repository Galaxy" />
-          <div className="w-full bg-[var(--panel)]/40 border border-[var(--border)] rounded-3xl p-4 md:p-8 flex items-center justify-center min-h-[600px] md:min-h-[700px] relative overflow-hidden">
-            <RepositoryGalaxy repositories={repositories} avatarUrl={profile.avatarUrl} />
-          </div>
-        </div>
-
-        {/* DNA */}
-        <div id="dna" ref={(el) => { sectionRefs.current['dna'] = el; }} className="scroll-mt-24 space-y-6 flex flex-col items-center">
-          <div className="w-full">
-            <SectionHeading eyebrow="developer dna" title="Core Engineering Traits" />
-          </div>
-          <div className="w-full max-w-2xl bg-[var(--panel)]/40 border border-[var(--border-soft)] rounded-3xl p-6 md:p-12 flex items-center justify-center min-h-[480px]">
-            <RadarChart stats={stats} repositories={repositories} profile={profile} />
-          </div>
-        </div>
-
-        {/* RPG CHARACTER CARD */}
-        <div id="rpg" ref={(el) => { sectionRefs.current['rpg'] = el; }} className="scroll-mt-24 space-y-6 flex flex-col items-center">
-          <div className="w-full">
-            <SectionHeading eyebrow="character sheet" title="RPG Developer Character Sheet" />
-          </div>
-          <div className="w-full">
-            <RPGCard profileData={profileData} />
-          </div>
-        </div>
-
-
-        {/* DIALECTS */}
-        <div id="dialects" ref={(el) => { sectionRefs.current['dialects'] = el; }} className="scroll-mt-24 space-y-6">
-          <SectionHeading eyebrow="dialect flow" title="Language Evolution Path" />
-          <div className="w-full bg-[var(--panel)]/40 border border-[var(--border-soft)] rounded-3xl p-6 md:p-12 flex items-center justify-center min-h-[300px]">
-            <SankeyDiagram stats={stats} />
-          </div>
-        </div>
-
-        {/* CLOCK */}
-        <div id="clock" ref={(el) => { sectionRefs.current['clock'] = el; }} className="scroll-mt-24 space-y-6 flex flex-col items-center">
-          <div className="w-full">
-            <SectionHeading eyebrow="activity cycles" title="Coding Clock" />
-          </div>
-          <div className="w-full max-w-2xl bg-[var(--panel)]/40 border border-[var(--border-soft)] rounded-3xl p-6 md:p-12 flex items-center justify-center min-h-[480px]">
-            <CodingClock username={profile.username} />
-          </div>
-        </div>
-
-        {/* BADGES — buttons with a shared, always-reachable description slot
-            instead of a hover-only popover that touch and keyboard users
-            can never see. */}
-        <div id="badges" ref={(el) => { sectionRefs.current['badges'] = el; }} className="scroll-mt-24 space-y-6">
-          <SectionHeading eyebrow="unlocked achievements" title="Unlocked Badges" />
-          <div className="w-full bg-[var(--panel)]/40 border border-[var(--border-soft)] rounded-3xl p-8 md:p-12 space-y-8">
-            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
-              {BADGES.map((b) => {
-                const isOpen = openBadge === b.id;
-                return (
-                  <button
-                    key={b.id}
-                    onClick={() => setOpenBadge(isOpen ? null : b.id)}
-                    aria-expanded={isOpen}
-                    aria-controls={`badge-desc-${b.id}`}
-                    className="flex flex-col items-center gap-2 bg-transparent border-0 cursor-pointer outline-none"
-                    style={{ '--badge-accent': b.accent } as React.CSSProperties}
-                  >
-                    <span
-                      className="w-16 h-16 rounded-2xl bg-[var(--bg)] border flex items-center justify-center text-3xl transition-colors"
-                      style={{ borderColor: isOpen ? b.accent : 'var(--border)' }}
-                    >
-                      {b.emoji}
-                    </span>
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500">{b.title}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Persistent description slot — visible to everyone, not a popover */}
-            <div
-              className="min-h-[3rem] flex items-center justify-center text-center px-4 py-3 rounded-xl bg-[var(--bg)] border border-[var(--border-soft)]"
-              aria-live="polite"
-            >
-              {openBadge ? (
-                (() => {
-                  const b = BADGES.find((x) => x.id === openBadge)!;
-                  return (
-                    <p id={`badge-desc-${b.id}`} className="text-sm font-mono text-neutral-300">
-                      <span className="text-white font-bold">{b.title}</span> — {b.desc(numbersStats, stats)}
-                    </p>
-                  );
-                })()
-              ) : (
-                <p className="text-xs font-mono text-neutral-600">select a badge to see what it took to earn it</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* AI OBSERVATIONS */}
-        <div id="ai" ref={(el) => { sectionRefs.current['ai'] = el; }} className="scroll-mt-24 space-y-6">
-          <SectionHeading eyebrow="ai reflection" title="AI Observations" />
-          <div className="w-full bg-[var(--panel)] rounded-3xl border border-[var(--border)] overflow-hidden flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-4 bg-[var(--bg)] border-b border-[var(--border-soft)] select-none">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 rounded-full bg-rose-500/25 border border-rose-500/10" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500/25 border border-yellow-500/10" />
-                <div className="w-3 h-3 rounded-full bg-emerald-500/25 border border-emerald-500/10" />
-              </div>
-              <span className="text-[10px] text-neutral-500 font-mono tracking-widest uppercase">devwrap-ai // insight-stream</span>
-              <div className="w-12" />
-            </div>
-
-            <div className="p-8 space-y-6 min-h-[220px] bg-black font-mono text-sm text-[var(--add)] leading-relaxed flex flex-col justify-center">
-              <div className="space-y-3">
-                <p className="text-xs text-neutral-500 uppercase tracking-widest mb-2">
-                  // compiled characteristics for archetype: {archetype || 'THE BUILDER'}
-                </p>
-                {aiSummary && aiSummary.length > 0 ? (
-                  aiSummary.map((line, idx) => (
-                    <p key={idx} className="m-0 select-text">{`> ${line}`}</p>
-                  ))
-                ) : (
-                  <>
-                    <p className="m-0 select-text">{`> JavaScript and TypeScript core systems established.`}</p>
-                    <p className="m-0 select-text">{`> Commits spike during night hours, mapping owl pipelines.`}</p>
-                    <p className="m-0 select-text">{`> Code footprint active across ${numbersStats.projects} repos.`}</p>
-                  </>
-                )}
-                <div className="flex items-center gap-1">
-                  <span>&gt;</span>
-                  <span
-                    className={`w-2.5 h-4 bg-[var(--add)] inline-block ${prefersReducedMotion ? '' : 'animate-pulse'}`}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* SKILL TREE */}
-        <div id="skills" ref={(el) => { sectionRefs.current['skills'] = el; }} className="scroll-mt-24 space-y-6">
-          <SectionHeading eyebrow="status matrix" title="Skill Matrix Tree" />
-          <div className="w-full bg-[var(--panel)]/40 border border-[var(--border-soft)] rounded-3xl p-6 md:p-8 flex flex-col items-center justify-center min-h-[360px] relative overflow-hidden">
-            <TechTree stats={stats} repositories={repositories} />
-          </div>
-        </div>
-      </div>
-
-      {/* FOOTER CTAs */}
-      <div className="w-full max-w-5xl pt-12 pb-28 border-t border-[var(--border-soft)] flex flex-col sm:flex-row items-center justify-between gap-6 text-xs text-neutral-500 font-mono mt-8">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--add)]" />
-          <span>DevWrap // Compiled Successfully</span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-          <button
-            onClick={handleGenerateStory}
-            className="w-full sm:w-auto px-5 py-2.5 border border-[var(--border)] bg-[var(--panel)] hover:bg-[var(--border-soft)] text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 text-[var(--add)]" />
-            <span>Preview story card</span>
-          </button>
-
-          <button
-            onClick={handleExport}
-            className="w-full sm:w-auto px-5 py-2.5 bg-[var(--add)] hover:bg-[var(--add-dim)] text-black text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer"
-          >
-            <Download className="w-4 h-4" />
-            <span>Download story</span>
-          </button>
-
-          <button
-            onClick={handleShare}
-            className="w-full sm:w-auto px-5 py-2.5 border border-[var(--border)] bg-[var(--bg)] hover:bg-[var(--panel)] text-neutral-400 hover:text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-2 cursor-pointer"
-          >
-            <Share2 className="w-4 h-4" />
-            <span>Share DevWrap</span>
-          </button>
-        </div>
-      </div>
-    </main>
-  );
-}
-
-function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div className="space-y-2">
-      <span className="text-xs font-mono text-neutral-500 uppercase tracking-widest block">// {eyebrow}</span>
-      <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">{title}</h2>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

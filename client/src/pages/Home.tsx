@@ -24,44 +24,47 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#090909] text-neutral-400 font-mono flex items-center justify-center p-4 selection:bg-[#9FE870]/20 selection:text-[#9FE870] relative scanlines">
-      
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="w-full max-w-lg rounded-2xl os-window overflow-hidden flex flex-col fade-in"
-      >
-        {/* macOS Window Title Bar */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#0d0d0d] border-b border-[#1a1a1a] select-none">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-[#262626] border border-[#1a1a1a]" />
-            <div className="w-3 h-3 rounded-full bg-[#262626] border border-[#1a1a1a]" />
-            <div className="w-3 h-3 rounded-full bg-[#262626] border border-[#1a1a1a]" />
-          </div>
-          <span className="text-[11px] text-neutral-500 tracking-wider">
-            devwrap // init
-          </span>
-          <div className="w-12" />
-        </div>
+    <main className="min-h-screen bg-[#E3E3E3] text-black font-mono flex items-center justify-center p-4 selection:bg-black selection:text-white relative crt-screen">
+      <div className="crt-overlay" />
+      <div className="crt-vignette" />
 
-        {/* Console Box */}
-        <div className="p-8 space-y-6 bg-[#0d0d0d]">
-          {/* Prompt line */}
-          <div className="space-y-2 text-xs leading-relaxed">
-            <div className="flex items-center space-x-2 text-[#9FE870]">
-              <span>$</span>
-              <span className="cursor-blink">devwrap --init</span>
-            </div>
-            <p className="text-neutral-500 font-sans max-w-sm">
-              Enter your GitHub username to visualize your coding journey and developer archetype.
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.1 }}
+        className="w-full max-w-lg bg-[#E3E3E3] border-4 border-double border-black p-1 shadow-[6px_6px_0px_#000000] relative z-10 rounded-none"
+      >
+        {/* Double Frame bezel container */}
+        <div className="border border-black p-6 space-y-6">
+          {/* Workstation Header */}
+          <div className="text-center space-y-2 select-none">
+            <h1 className="text-3xl font-extrabold tracking-widest uppercase font-heading">
+              * D E V W R A P *
+            </h1>
+            <p className="text-xs uppercase tracking-widest border-b border-black border-dashed pb-3">
+              Monochrome Workstation v1.2.83
             </p>
           </div>
 
-          {/* Form */}
+          {/* Console Details / Info Box */}
+          <div className="space-y-4 text-xs font-mono">
+            <div className="space-y-1">
+              <p className="font-bold">SYSTEM STATUS: READY</p>
+              <p>MEM FREE: 512 KB</p>
+              <p>STORAGE: FLOPPY DRIVE A: (ONLINE)</p>
+            </div>
+            <div className="border border-black p-3 bg-white/50 text-[11px] leading-relaxed rounded-none">
+              <p className="font-bold mb-1">--- NOTICE ---</p>
+              <p>
+                PROVIDE YOUR GITHUB IDENTIFIER (USERNAME) TO COMPILE A FULL SYSTEM RECAP AND PROFILE TRAIT DIAGNOSTICS.
+              </p>
+            </div>
+          </div>
+
+          {/* Input Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="flex items-center space-x-2 border border-[#1a1a1a] bg-[#090909] px-4 py-3 rounded-xl focus-within:border-[#9FE870] transition-all">
-              <span className="text-neutral-600 text-xs select-none">github.com/</span>
+            <div className="border border-black bg-white px-3 py-2 flex items-center rounded-none">
+              <span className="text-neutral-500 text-xs font-bold mr-1 select-none">github.com/</span>
               <input
                 type="text"
                 placeholder="username"
@@ -70,31 +73,22 @@ export default function Home() {
                 autoFocus
                 autoComplete="off"
                 spellCheck="false"
-                className="flex-1 bg-transparent border-none text-[#9FE870] placeholder-neutral-700 outline-none text-xs font-mono"
+                className="flex-1 bg-transparent border-none text-black placeholder-neutral-400 outline-none text-xs font-mono"
               />
             </div>
 
-            <div className="flex justify-end pt-1">
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-[10px] text-neutral-600 font-bold uppercase select-none">
+                SYS.REQ // PORT 5000
+              </span>
               <button
                 type="submit"
-                className="px-5 py-2.5 border border-[#1a1a1a] hover:border-[#9FE870] text-[#9FE870] bg-[#0d0d0d] text-xs font-medium rounded-xl transition-all cursor-pointer select-none uppercase tracking-wide"
+                className="px-6 py-2 btn-retro text-xs rounded-none"
               >
-                Compile
+                Compile Traits ▶
               </button>
             </div>
           </form>
-        </div>
-
-        {/* VS Code Style Status Bar */}
-        <div className="px-6 py-2.5 bg-[#090909] border-t border-[#1a1a1a] flex justify-between text-[9px] text-neutral-500 tracking-widest uppercase select-none">
-          <div className="flex items-center space-x-4">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-[#9FE870]" />
-              connected
-            </span>
-            <span>github api</span>
-          </div>
-          <span>v3.0</span>
         </div>
       </motion.div>
     </main>

@@ -89,8 +89,8 @@ export default function RadarChart({ stats, repositories, profile }: RadarChartP
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full max-w-[500px] overflow-visible">
         <defs>
           <radialGradient id="radarAreaGradient" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#9FE870" stopOpacity="0.05" />
-            <stop offset="100%" stopColor="#9FE870" stopOpacity="0.25" />
+            <stop offset="0%" stopColor="#000000" stopOpacity="0.05" />
+            <stop offset="100%" stopColor="#000000" stopOpacity="0.2" />
           </radialGradient>
         </defs>
 
@@ -100,9 +100,9 @@ export default function RadarChart({ stats, repositories, profile }: RadarChartP
             key={idx}
             points={points}
             fill="none"
-            stroke="#1c1c1f"
+            stroke="#000000"
             strokeWidth={1}
-            strokeDasharray={idx === 3 ? '0' : '3 3'}
+            strokeDasharray={idx === 3 ? '0' : '2 2'}
           />
         ))}
 
@@ -116,7 +116,7 @@ export default function RadarChart({ stats, repositories, profile }: RadarChartP
               y1={cy}
               x2={outerCoord.x}
               y2={outerCoord.y}
-              stroke="#1c1c1f"
+              stroke="#000000"
               strokeWidth={1}
             />
           );
@@ -129,8 +129,8 @@ export default function RadarChart({ stats, repositories, profile }: RadarChartP
           transition={{ duration: 0.8, ease: 'easeOut' }}
           points={polygonPointsStr}
           fill="url(#radarAreaGradient)"
-          stroke="#9FE870"
-          strokeWidth={1.5}
+          stroke="#000000"
+          strokeWidth={2}
           className="origin-center"
         />
 
@@ -143,10 +143,10 @@ export default function RadarChart({ stats, repositories, profile }: RadarChartP
             transition={{ delay: 0.4 + i * 0.05, type: 'spring', stiffness: 200 }}
             cx={point.x}
             cy={point.y}
-            r={3}
-            fill="#090909"
-            stroke="#9FE870"
-            strokeWidth={1.5}
+            r={4}
+            fill="#FFFFFF"
+            stroke="#000000"
+            strokeWidth={2}
             className="cursor-pointer"
             whileHover={{ scale: 1.5, strokeWidth: 3 }}
           />
@@ -159,7 +159,7 @@ export default function RadarChart({ stats, repositories, profile }: RadarChartP
               x={pos.x}
               y={pos.y}
               textAnchor={pos.textAnchor}
-              className="fill-neutral-400 font-sans text-[11px] font-medium tracking-wider uppercase select-none transition-colors duration-200 hover:fill-white"
+              className="fill-black font-mono text-[10px] font-bold tracking-wider uppercase select-none"
               dy={i === 0 ? -6 : i === 3 ? 14 : 3}
             >
               {pos.label}
@@ -168,10 +168,10 @@ export default function RadarChart({ stats, repositories, profile }: RadarChartP
               x={pos.x}
               y={pos.y + 14}
               textAnchor={pos.textAnchor}
-              className="fill-[#9FE870] font-mono text-[10px] font-semibold"
+              className="fill-black font-mono text-[9px] font-bold"
               dy={i === 0 ? -6 : i === 3 ? 14 : 3}
             >
-              {pos.val}%
+              [{pos.val}%]
             </text>
           </g>
         ))}
