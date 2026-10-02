@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Home, User, Cpu, Settings, LogOut,
-  Download, Share2, Sparkles, X, Copy, Terminal, Mail, Info, FileText, ChevronRight, BarChart2, Award, Clock
+  Home, Cpu, Settings, LogOut,
+  Download, Share2, X, Terminal, FileText, BarChart2, Award, Clock
 } from 'lucide-react';
 import useProfileStore from '../store/profileStore';
-import type { DevWrapStats, DevWrapRepo, DevWrapProfile, DevWrapResult } from '../types/github';
+import type { DevWrapStats } from '../types/github';
 
 import RadarChart from '../components/RadarChart';
 import CodingClock from '../components/CodingClock';
@@ -150,7 +150,8 @@ export default function Workspace() {
   const triggerBeep = (freq = 800, duration = 0.04, type: OscillatorType = 'sine') => {
     if (!audioOn) return;
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AudioCtx();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
@@ -165,7 +166,7 @@ export default function Workspace() {
       
       osc.start();
       osc.stop(ctx.currentTime + duration);
-    } catch (e) {
+    } catch {
       // Ignored
     }
   };
@@ -495,6 +496,11 @@ export default function Workspace() {
                             {archetype || 'THE BUILDER'}
                           </span>
                         </div>
+                        {archetypeSentence && (
+                          <p className="text-[11px] text-neutral-700 italic font-mono">
+                            "{archetypeSentence}"
+                          </p>
+                        )}
                         <p className="text-[11px] text-neutral-600 font-mono tracking-normal leading-relaxed">
                           NODE IDENTIFIER: @{profile.username} // SEGMENTED SINCE: {profile.createdAt ? new Date(profile.createdAt).getFullYear() : '1983'}
                         </p>

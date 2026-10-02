@@ -1,7 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=VT323&display=swap');
 
 @theme inline {
   --font-sans: 'Space Mono', 'Courier New', Courier, monospace;
@@ -18,26 +16,6 @@
   --border-soft: #000000;
   --sans: 'Space Mono', 'Courier New', Courier, monospace;
   --mono: 'Space Mono', 'Courier New', Courier, monospace;
-
-  /* shadcn mappings to retain consistency */
-  --background: oklch(0.92 0 0);
-  --foreground: oklch(0 0 0);
-  --card: oklch(0.92 0 0);
-  --card-foreground: oklch(0 0 0);
-  --popover: oklch(0.92 0 0);
-  --popover-foreground: oklch(0 0 0);
-  --primary: oklch(0 0 0);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.85 0 0);
-  --secondary-foreground: oklch(0 0 0);
-  --muted: oklch(0.85 0 0);
-  --muted-foreground: oklch(0.3 0 0);
-  --accent-color: oklch(0 0 0);
-  --accent-foreground: oklch(1 0 0);
-  --border-color: oklch(0 0 0);
-  --input: oklch(0.92 0 0);
-  --ring: oklch(0 0 0);
-  --radius: 0px;
 
   font-family: 'Space Mono', 'Courier New', Courier, monospace;
   background-color: #E3E3E3;
