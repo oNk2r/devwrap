@@ -98,7 +98,3 @@ cd client && npm run build
 # Compile Backend Server
 cd server && npm run build
 ```
-
-## License
-
-ISC License.
