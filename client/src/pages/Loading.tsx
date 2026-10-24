@@ -1,11 +1,21 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Sparkles, Terminal, ArrowLeft, AlertCircle, RefreshCw } from 'lucide-react';
 import useProfileStore from '../store/profileStore';
 import type { DevWrapResult } from '../types/github';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL !== undefined 
-  ? import.meta.env.VITE_API_URL 
+const API_BASE_URL = import.meta.env.VITE_API_URL !== undefined
+  ? import.meta.env.VITE_API_URL
   : (import.meta.env.DEV ? 'http://localhost:5000' : '');
+
+const DEV_TIPS = [
+  "Did you know? Consistent 20-minute daily coding builds stronger neural pathways than weekend marathons.",
+  "Coffee is just a mechanism for turning caffeine into pull requests.",
+  "Measuring programming progress by lines of code is like measuring aircraft building progress by weight.",
+  "Analyzing your language diversity and stars balance...",
+  "Synthesizing your AI cognitive archetype and skill matrix...",
+];
 
 export default function Loading() {
   const navigate = useNavigate();
@@ -18,7 +28,8 @@ export default function Loading() {
   const setError = useProfileStore((s) => s.setError);
   const reset = useProfileStore((s) => s.reset);
 
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState(15);
+  const [tipIndex, setTipIndex] = useState(0);
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const progressIntervalRef = useRef<number | null>(null);
@@ -29,6 +40,14 @@ export default function Loading() {
       navigate('/');
     }
   }, [username, navigate]);
+
+  // Rotate tips
+  useEffect(() => {
+    const tipTimer = setInterval(() => {
+      setTipIndex((prev) => (prev + 1) % DEV_TIPS.length);
+    }, 3500);
+    return () => clearInterval(tipTimer);
+  }, []);
 
   useEffect(() => {
     if (!username) return;
@@ -49,6 +68,7 @@ export default function Loading() {
 
         if (payload.type === 'log') {
           addLog(payload.message);
+          setProgress((prev) => Math.min(92, prev + 12));
         } else if (payload.type === 'data') {
           const result: DevWrapResult = {
             profile: payload.profile,
@@ -68,28 +88,28 @@ export default function Loading() {
 
           setTimeout(() => {
             navigate(`/user/${encodeURIComponent(username)}`, { replace: true });
-          }, 400); // slightly longer delay for full 80s immersive experience
+          }, 350);
         } else if (payload.type === 'error') {
           setError(payload.message);
           addLog(payload.message);
           es.close();
         }
       } catch {
-        setError('Failed parsing socket event stream');
-        addLog(`ERROR: Malformed data stream received.`);
+        setError('Failed parsing API stream response');
+        addLog(`ERROR: Malformed event stream received.`);
         es.close();
       }
     };
 
     es.onerror = () => {
-      setError('Connection with API stream lost');
-      addLog(`ERROR: Connection with DevWrap API gateway lost.`);
+      setError('Connection with API gateway lost. Make sure the backend server is running on port 5000.');
+      addLog(`ERROR: Connection with DevWrap API lost.`);
       es.close();
     };
 
     progressIntervalRef.current = window.setInterval(() => {
-      setProgress((prev) => (prev < 96 ? prev + 4 : prev));
-    }, 80);
+      setProgress((prev) => (prev < 90 ? prev + 3 : prev));
+    }, 120);
 
     return () => {
       if (eventSourceRef.current) {
@@ -112,101 +132,124 @@ export default function Loading() {
     navigate('/');
   };
 
-  // Character progress bar calculation: 20 blocks total
-  const totalBlocks = 20;
-  const filledBlocks = Math.round((progress / 100) * totalBlocks);
-  const characterProgressBar = '█'.repeat(filledBlocks) + '░'.repeat(totalBlocks - filledBlocks);
-
   return (
-    <main className="min-h-screen bg-[#E3E3E3] text-black font-mono flex items-center justify-center p-4 selection:bg-black selection:text-white relative crt-screen">
-      <div className="crt-overlay" />
-      <div className="crt-vignette" />
-
-      <div className="w-full max-w-lg bg-[#E3E3E3] border-4 border-double border-black p-1 shadow-[6px_6px_0px_#000000] relative z-10 rounded-none">
-        
-        {/* Double Frame bezel container */}
-        <div className="border border-black p-6 space-y-6">
-          
-          {/* Header */}
-          <div className="text-center select-none">
-            <h1 className="text-2xl font-bold tracking-widest font-heading uppercase">
-              * PROGRAM LOADER *
-            </h1>
-            <p className="text-[11px] uppercase tracking-wider border-b border-black border-dashed pb-3">
-              Compiling DevWrap User: {username}
-            </p>
+    <main className="min-h-screen neo-grid-bg text-neutral-900 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-lg bg-white border-[2.5px] border-black rounded-3xl p-6 shadow-[6px_6px_0px_#000] relative"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between pb-4 mb-4 border-b-2 border-black border-dashed">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-[#00F5A0] border-2 border-black shadow-[2px_2px_0px_#000] flex items-center justify-center font-bold">
+              ⚡
+            </div>
+            <div>
+              <h2 className="font-extrabold text-base leading-tight">Unwrapping @{username}</h2>
+              <span className="text-xs text-neutral-500 font-mono">Compiling Developer Recap</span>
+            </div>
           </div>
 
-          {error ? (
-            /* Fatal System Error Panel */
-            <div className="space-y-4">
-              <div className="border-2 border-black p-4 bg-black text-white rounded-none">
-                <p className="font-bold text-center tracking-widest mb-2 font-heading text-lg">
-                  *** FATAL SYSTEM ERROR ***
-                </p>
-                <p className="text-xs text-center">
-                  DIAGNOSTIC FAULT DETECTED DURING USER RECORD FETCH
-                </p>
-              </div>
+          <span className="neo-badge bg-[#FFDE59] text-black">
+            {progress}%
+          </span>
+        </div>
 
-              <div className="border border-black p-3 bg-white/50 text-xs min-h-[80px] font-mono leading-relaxed rounded-none">
-                <p className="font-bold uppercase text-[10px] text-neutral-600 mb-1">Error Dump:</p>
-                <p>{error}</p>
-              </div>
-
-              <div className="flex justify-end pt-2">
-                <button
-                  onClick={handleBack}
-                  className="px-6 py-2 btn-retro text-xs rounded-none"
-                >
-                  ◀ Main Menu
-                </button>
+        {error ? (
+          /* Error State */
+          <div className="space-y-4 py-2">
+            <div className="p-4 bg-red-50 border-2 border-red-500 rounded-2xl flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-sm text-red-900 mb-1">Failed to Fetch Profile</h4>
+                <p className="text-xs text-red-700 leading-relaxed">{error}</p>
               </div>
             </div>
-          ) : (
-            /* Standard Loading Progress Panel */
-            <div className="space-y-5">
-              <div className="space-y-1 text-xs select-none">
-                <p className="font-bold uppercase">TRACKING STATUS: READING SECTORS</p>
-                <p>SECTOR ADDR: 0x{progress.toString(16).toUpperCase()}</p>
-                <div className="flex justify-between items-center pt-2">
-                  <span className="font-mono text-[11px] font-bold tracking-wider">
-                    [{characterProgressBar}]
-                  </span>
-                  <span className="font-bold">{progress}%</span>
-                </div>
+
+            <div className="flex justify-between items-center pt-2">
+              <button
+                onClick={handleBack}
+                className="neo-btn bg-white px-4 py-2 text-xs"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Try Another Username</span>
+              </button>
+
+              <button
+                onClick={() => window.location.reload()}
+                className="neo-btn neo-btn-primary px-4 py-2 text-xs"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Retry</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Active Loading State */
+          <div className="space-y-5">
+            {/* Progress Bar */}
+            <div>
+              <div className="w-full bg-neutral-100 h-4 rounded-full overflow-hidden border-2 border-black p-0.5 shadow-[2px_2px_0px_#000]">
+                <motion.div
+                  initial={{ width: '10%' }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                  className="h-full rounded-full bg-gradient-to-r from-[#00F5A0] via-[#38BDF8] to-[#FFDE59]"
+                />
+              </div>
+            </div>
+
+            {/* Live Streaming Log Terminal */}
+            <div className="bg-[#FAF8F5] border-2 border-black rounded-2xl p-4 shadow-[2px_2px_0px_#000]">
+              <div className="flex items-center justify-between text-[11px] font-mono font-bold text-neutral-500 border-b border-black/10 pb-2 mb-2">
+                <span className="flex items-center gap-1.5">
+                  <Terminal className="w-3.5 h-3.5" />
+                  <span>Pipeline Live Stream</span>
+                </span>
+                <span className="flex items-center gap-1 text-emerald-600">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                  <span>Active</span>
+                </span>
               </div>
 
-              {/* Scrollable Logs Output */}
-              <div className="space-y-1.5 text-xs overflow-y-auto h-[140px] pr-2 bg-white/80 border border-black p-3 font-mono rounded-none">
-                <p className="text-neutral-500">// Initiating workstation pipeline...</p>
-                {logs.map((log, index) => {
-                  const isError = log.startsWith('ERROR:') || log.includes('error') || log.includes('Failed');
-                  const isSuccess = log.startsWith('✓');
-                  let prefix = '> ';
-                  if (log.startsWith('$')) {
-                    prefix = '';
-                  }
-                  
-                  return (
-                    <p key={index} className={`${isError ? 'text-red-600 font-bold' : isSuccess ? 'text-black font-bold' : 'text-neutral-800'} leading-normal`}>
-                      {prefix}{log}
-                    </p>
-                  );
-                })}
+              <div className="h-32 overflow-y-auto font-mono text-xs space-y-1.5 pr-1">
+                {logs.length === 0 ? (
+                  <p className="text-neutral-400 italic">Initiating GitHub GraphQL & REST connection...</p>
+                ) : (
+                  logs.map((log, index) => (
+                    <div key={index} className="flex items-start gap-1.5 text-neutral-800">
+                      <span className="text-[#00F5A0] font-black">✓</span>
+                      <span className="leading-tight">{log}</span>
+                    </div>
+                  ))
+                )}
                 <div ref={consoleBottomRef} />
               </div>
-
-              {/* Loader Status Bar */}
-              <div className="pt-2 border-t border-black border-dashed flex justify-between text-[9px] text-neutral-600 tracking-wider uppercase select-none">
-                <span>PORT: 5000</span>
-                <span>BAUD: 9600</span>
-                <span>SYS_OP LOGGED IN</span>
-              </div>
             </div>
-          )}
-        </div>
-      </div>
+
+            {/* Rotating Tip */}
+            <div className="p-3 bg-neutral-50 border border-black/30 rounded-xl flex items-center gap-2.5 text-xs text-neutral-600">
+              <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+              <p className="line-clamp-2 italic font-medium">"{DEV_TIPS[tipIndex]}"</p>
+            </div>
+
+            <div className="flex justify-between items-center pt-2">
+              <button
+                onClick={handleBack}
+                className="neo-btn bg-white px-3.5 py-1.5 text-xs text-neutral-600"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Cancel</span>
+              </button>
+
+              <span className="text-[11px] font-mono text-neutral-500 font-bold">
+                Fetching Repositories & Heatmap...
+              </span>
+            </div>
+          </div>
+        )}
+      </motion.div>
     </main>
   );
 }

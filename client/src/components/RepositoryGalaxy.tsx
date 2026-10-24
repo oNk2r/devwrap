@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ExternalLink, Star, GitFork, Orbit, LayoutGrid } from 'lucide-react';
 import type { DevWrapRepo } from '../types/github';
 
 interface RepositoryGalaxyProps {
@@ -7,77 +8,59 @@ interface RepositoryGalaxyProps {
   avatarUrl: string;
 }
 
-// Map languages to aesthetic colors
 const LANGUAGE_COLORS: Record<string, string> = {
   TypeScript: '#3178c6',
-  JavaScript: '#f1e05a',
+  JavaScript: '#eab308',
   Python: '#3572A5',
   Go: '#00ADD8',
-  Rust: '#dea584',
+  Rust: '#f97316',
   HTML: '#e34c26',
-  CSS: '#563d7c',
+  CSS: '#8b5cf6',
   Java: '#b07219',
-  Ruby: '#701516',
+  Ruby: '#dc2626',
   PHP: '#4F5D95',
-  C: '#555555',
-  'C++': '#f34b7d',
-  'C#': '#178600',
+  C: '#64748b',
+  'C++': '#f43f5e',
+  'C#': '#16a34a',
   Swift: '#F05138',
+  Kotlin: '#a855f7',
+  Dart: '#0284c7',
 };
 
-const DEFAULT_COLOR = '#8b5cf6'; // fallback purple
-
-const renderLanguageLogo = (lang: string, size: number) => {
-  let monogram = lang.slice(0, 2).toUpperCase();
-  if (lang.toLowerCase() === 'c++') monogram = 'C+';
-  if (lang.toLowerCase() === 'c#') monogram = 'C#';
-  if (lang.toLowerCase() === 'javascript') monogram = 'JS';
-  if (lang.toLowerCase() === 'typescript') monogram = 'TS';
-  if (lang.toLowerCase() === 'python') monogram = 'PY';
-  if (lang.toLowerCase() === 'html') monogram = 'HT';
-  if (lang.toLowerCase() === 'css') monogram = 'CS';
-
-  // Font size scales with planet radius (size is radius)
-  const fontSize = Math.max(9, Math.min(14, size * 0.9));
-
-  return (
-    <span 
-      className="font-sans font-extrabold select-none leading-none tracking-tighter"
-      style={{ 
-        fontSize: `${fontSize}px`,
-        color: '#060608',
-      }}
-    >
-      {monogram}
-    </span>
-  );
-};
+const DEFAULT_COLOR = '#8b5cf6';
 
 export default function RepositoryGalaxy({ repositories, avatarUrl }: RepositoryGalaxyProps) {
+  const [viewMode, setViewMode] = useState<'orbit' | 'grid'>('orbit');
   const [hoveredRepo, setHoveredRepo] = useState<DevWrapRepo | null>(null);
-  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('all');
 
-  // Filter out forks and pick top 8-10 repositories sorted by stars/updates
+  // Available unique languages
+  const allLanguages = useMemo(() => {
+    const set = new Set<string>();
+    repositories.forEach(r => {
+      if (r.language) set.add(r.language);
+    });
+    return Array.from(set);
+  }, [repositories]);
+
+  // Filtered repositories
+  const filteredRepos = useMemo(() => {
+    if (selectedLanguage === 'all') return repositories;
+    return repositories.filter(r => r.language === selectedLanguage);
+  }, [repositories, selectedLanguage]);
+
+  // Planetary configuration for Orbit view (top 8 repos)
   const planets = useMemo(() => {
     const sorted = [...repositories]
       .sort((a, b) => b.stars - a.stars || new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-    
-    return sorted.slice(0, 8).map((repo, index) => {
-      // Orbit configuration
-      const baseRadius = 45;
-      const spacing = 20;
-      const radius = baseRadius + index * spacing;
-      
-      // Speed - closer orbits are faster
-      const duration = 12 + index * 6 + (index % 2 === 0 ? 2 : -2);
-      
-      // Starting angle spread out evenly
-      const startAngle = (index * 2 * Math.PI) / 8;
-      
-      // Planet size based on stars
-      const planetSize = 10 + Math.min(10, repo.stars * 1.8);
 
-      // Color mapping
+    return sorted.slice(0, 8).map((repo, index) => {
+      const baseRadius = 55;
+      const spacing = 22;
+      const radius = baseRadius + index * spacing;
+      const duration = 16 + index * 6;
+      const startAngle = (index * 2 * Math.PI) / 8;
+      const planetSize = 12 + Math.min(12, repo.stars * 1.5);
       const color = LANGUAGE_COLORS[repo.language] || DEFAULT_COLOR;
 
       return {
@@ -91,183 +74,255 @@ export default function RepositoryGalaxy({ repositories, avatarUrl }: Repository
     });
   }, [repositories]);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setTooltipPos({
-      x: e.clientX - rect.left + 15,
-      y: e.clientY - rect.top - 15,
-    });
-  };
-
   return (
-    <div 
-      className="w-full h-full min-h-[360px] flex items-center justify-center relative overflow-hidden select-none"
-      onMouseMove={handleMouseMove}
-    >
-      {/* Inline styles for orbital rotation animation */}
-      <style>{`
-        @keyframes galaxy-orbit {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes counter-rotate {
-          from { transform: rotate(360deg); }
-          to { transform: rotate(0deg); }
-        }
-        .galaxy-ring-animation {
-          animation: galaxy-orbit var(--duration, 20s) linear infinite;
-        }
-        .galaxy-ring-animation:hover {
-          animation-play-state: paused;
-        }
-        .planet-counter-animation {
-          animation: counter-rotate var(--duration, 20s) linear infinite;
-        }
-        .galaxy-ring-animation:hover .planet-counter-animation {
-          animation-play-state: paused;
-        }
-      `}</style>
+    <div className="w-full flex flex-col space-y-4">
+      {/* Controls Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b-2 border-black border-dashed">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setViewMode('orbit')}
+            className={`neo-btn px-3 py-1.5 text-xs ${viewMode === 'orbit' ? 'neo-btn-primary' : 'bg-white'}`}
+          >
+            <Orbit className="w-3.5 h-3.5" />
+            <span>Solar Orbit</span>
+          </button>
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`neo-btn px-3 py-1.5 text-xs ${viewMode === 'grid' ? 'neo-btn-primary' : 'bg-white'}`}
+          >
+            <LayoutGrid className="w-3.5 h-3.5" />
+            <span>Card Grid ({repositories.length})</span>
+          </button>
+        </div>
 
-      {/* Galaxy Container */}
-      <div className="relative w-[380px] h-[380px] flex items-center justify-center scale-95 md:scale-100">
-        
-        {/* Orbits and Planets */}
-        {planets.map((planet) => (
-          <div
-            key={planet.id}
-            className="absolute rounded-full border border-neutral-800 pointer-events-none"
-            style={{
-              width: planet.orbitRadius * 2,
-              height: planet.orbitRadius * 2,
-              left: '50%',
-              top: '50%',
-              transform: 'translate(-50%, -50%)',
-              borderStyle: 'dashed',
-              borderWidth: '0.75px',
-            }}
-          />
-        ))}
-
-        {/* Orbit container wrappers that rotate */}
-        {planets.map((planet) => {
-          const rotationAngleDegrees = (planet.startAngle * 180) / Math.PI;
-
-          return (
-            <div
-              key={planet.id}
-              className="absolute w-full h-full flex items-center justify-center pointer-events-none"
-              style={{
-                transform: `rotate(${rotationAngleDegrees}deg)`,
-              }}
+        {/* Language Filter */}
+        <div className="flex items-center gap-1.5 overflow-x-auto max-w-full py-1">
+          <button
+            onClick={() => setSelectedLanguage('all')}
+            className={`px-2.5 py-1 text-xs font-bold rounded-full border-2 border-black transition-all cursor-pointer ${
+              selectedLanguage === 'all' ? 'bg-black text-white shadow-[2px_2px_0px_#000]' : 'bg-white hover:bg-neutral-100'
+            }`}
+          >
+            All
+          </button>
+          {allLanguages.map((lang) => (
+            <button
+              key={lang}
+              onClick={() => setSelectedLanguage(lang)}
+              className={`px-2.5 py-1 text-xs font-bold rounded-full border-2 border-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                selectedLanguage === lang ? 'bg-black text-white shadow-[2px_2px_0px_#000]' : 'bg-white hover:bg-neutral-100'
+              }`}
             >
-              <div
-                className="galaxy-ring-animation absolute w-full h-full flex items-center justify-center pointer-events-none"
-                style={
-                  {
-                    '--duration': `${planet.duration}s`,
-                  } as React.CSSProperties
-                }
-              >
-                {/* Planet positioned along the orbit radius */}
-                <div
-                  className="absolute cursor-pointer flex items-center justify-center pointer-events-auto"
-                  style={{
-                    transform: `translateX(${planet.orbitRadius}px)`,
-                  }}
-                  onMouseEnter={() => setHoveredRepo(planet)}
-                  onMouseLeave={() => setHoveredRepo(null)}
-                >
-                  <motion.div
-                    whileHover={{ scale: 1.4 }}
-                    className="planet-counter-animation rounded-full relative flex items-center justify-center overflow-hidden"
-                    style={
-                      {
-                        width: planet.size * 2,
-                        height: planet.size * 2,
-                        backgroundColor: planet.color,
-                        boxShadow: `0 0 12px ${planet.color}80`,
-                        '--duration': `${planet.duration}s`,
-                      } as React.CSSProperties
-                    }
-                  >
-                    {renderLanguageLogo(planet.language, planet.size)}
-                  </motion.div>
-                  
-                  {/* Subtle language orbit tag text on hover */}
-                  {hoveredRepo?.id === planet.id && (
-                    <div className="absolute text-[10px] font-mono text-neutral-500 whitespace-nowrap mt-7 bg-neutral-950 px-1.5 py-0.5 rounded border border-neutral-900">
-                      {planet.language}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Central Core (User Avatar / Sun) */}
-        <motion.div
-          animate={{
-            boxShadow: [
-              '0 0 15px rgba(255,255,255,0.05)',
-              '0 0 25px rgba(255,255,255,0.15)',
-              '0 0 15px rgba(255,255,255,0.05)',
-            ],
-          }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-          className="w-16 h-16 rounded-full bg-neutral-950 border border-neutral-800 flex items-center justify-center p-0.5 relative z-10 select-none overflow-hidden"
-        >
-          <img
-            src={avatarUrl}
-            alt="Central Core"
-            className="w-full h-full rounded-full object-cover grayscale opacity-90 hover:grayscale-0 transition-all duration-300"
-          />
-        </motion.div>
-
-        {/* Floating Tooltip Details Card */}
-        <AnimatePresence>
-          {hoveredRepo && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="absolute z-50 pointer-events-none p-3.5 bg-neutral-950/95 border border-neutral-900 rounded-xl shadow-2xl flex flex-col gap-1.5 w-52 font-mono text-[11px]"
-              style={{
-                left: tooltipPos.x,
-                top: tooltipPos.y,
-              }}
-            >
-              <span className="text-white font-bold truncate tracking-tight">
-                {hoveredRepo.name}
-              </span>
-              <p className="text-neutral-500 font-sans line-clamp-2 leading-tight">
-                {hoveredRepo.description}
-              </p>
-              
-              <div className="flex items-center justify-between border-t border-neutral-900/80 pt-1.5 mt-1 text-neutral-400">
-                <span className="flex items-center gap-1 font-semibold">
-                  <span 
-                    className="w-1.5 h-1.5 rounded-full inline-block" 
-                    style={{ backgroundColor: LANGUAGE_COLORS[hoveredRepo.language] || DEFAULT_COLOR }}
-                  />
-                  {hoveredRepo.language}
-                </span>
-                
-                <div className="flex items-center gap-2">
-                  {hoveredRepo.stars > 0 && (
-                    <span>★ {hoveredRepo.stars}</span>
-                  )}
-                  {hoveredRepo.forks > 0 && (
-                    <span>⑂ {hoveredRepo.forks}</span>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
+              <span
+                className="w-2 h-2 rounded-full inline-block"
+                style={{ backgroundColor: LANGUAGE_COLORS[lang] || DEFAULT_COLOR }}
+              />
+              <span>{lang}</span>
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Orbit View */}
+      {viewMode === 'orbit' && (
+        <div className="relative w-full min-h-[460px] bg-gradient-to-b from-[#FAF8F5] to-[#F2EFE9] border-2 border-black rounded-2xl p-4 flex flex-col items-center justify-center overflow-hidden shadow-[4px_4px_0px_#000]">
+          {/* Keyframe animations for orbits */}
+          <style>{`
+            @keyframes neo-orbit {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+            @keyframes neo-counter {
+              from { transform: rotate(360deg); }
+              to { transform: rotate(0deg); }
+            }
+            .orbit-ring-anim {
+              animation: neo-orbit var(--duration, 20s) linear infinite;
+            }
+            .orbit-ring-anim:hover {
+              animation-play-state: paused;
+            }
+            .planet-counter-anim {
+              animation: neo-counter var(--duration, 20s) linear infinite;
+            }
+            .orbit-ring-anim:hover .planet-counter-anim {
+              animation-play-state: paused;
+            }
+          `}</style>
+
+          {/* Galaxy Canvas */}
+          <div className="relative w-[440px] h-[440px] flex items-center justify-center scale-90 sm:scale-100">
+            {/* Dashed Orbit Circles */}
+            {planets.map((planet) => (
+              <div
+                key={`ring-${planet.id}`}
+                className="absolute rounded-full border border-neutral-300 pointer-events-none"
+                style={{
+                  width: planet.orbitRadius * 2,
+                  height: planet.orbitRadius * 2,
+                  left: '50%',
+                  top: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  borderStyle: 'dashed',
+                  borderWidth: '1.5px',
+                }}
+              />
+            ))}
+
+            {/* Orbit Container with Planets */}
+            {planets.map((planet) => {
+              const rotationAngleDegrees = (planet.startAngle * 180) / Math.PI;
+
+              return (
+                <div
+                  key={`planet-orbit-${planet.id}`}
+                  className="absolute w-full h-full flex items-center justify-center pointer-events-none"
+                  style={{
+                    transform: `rotate(${rotationAngleDegrees}deg)`,
+                  }}
+                >
+                  <div
+                    className="orbit-ring-anim absolute w-full h-full flex items-center justify-center pointer-events-none"
+                    style={{ '--duration': `${planet.duration}s` } as React.CSSProperties}
+                  >
+                    {/* Planet Node */}
+                    <div
+                      className="absolute cursor-pointer flex items-center justify-center pointer-events-auto"
+                      style={{
+                        transform: `translateX(${planet.orbitRadius}px)`,
+                      }}
+                      onMouseEnter={() => setHoveredRepo(planet)}
+                      onMouseLeave={() => setHoveredRepo(null)}
+                    >
+                      <motion.div
+                        whileHover={{ scale: 1.35 }}
+                        className="planet-counter-anim rounded-full border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_#000] relative"
+                        style={{
+                          width: planet.size * 2,
+                          height: planet.size * 2,
+                          backgroundColor: planet.color,
+                          '--duration': `${planet.duration}s`,
+                        } as React.CSSProperties}
+                      >
+                        <span className="text-[10px] font-black text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] select-none">
+                          {planet.name.slice(0, 2).toUpperCase()}
+                        </span>
+                      </motion.div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Central Sun / Developer Core */}
+            <div className="w-18 h-18 rounded-full bg-white border-2 border-black p-1 relative z-10 shadow-[4px_4px_0px_#000] flex items-center justify-center">
+              <img
+                src={avatarUrl}
+                alt="Dev Core"
+                className="w-full h-full rounded-full object-cover border border-black"
+              />
+            </div>
+          </div>
+
+          {/* Hovered Planet Card Overlay */}
+          <AnimatePresence>
+            {hoveredRepo && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="absolute bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-40 bg-white border-2 border-black rounded-xl p-3.5 shadow-[4px_4px_0px_#000] max-w-xs"
+              >
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <h4 className="font-extrabold text-sm truncate">{hoveredRepo.name}</h4>
+                  <a
+                    href={hoveredRepo.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-1 hover:bg-neutral-100 rounded border border-black"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+                <p className="text-xs text-neutral-600 line-clamp-2 mb-2">
+                  {hoveredRepo.description || 'No description provided.'}
+                </p>
+                <div className="flex items-center justify-between text-xs pt-1.5 border-t border-black/20">
+                  <span className="neo-badge text-[10px] py-0.5 px-2" style={{ backgroundColor: LANGUAGE_COLORS[hoveredRepo.language] || DEFAULT_COLOR, color: '#FFFFFF' }}>
+                    {hoveredRepo.language || 'Unknown'}
+                  </span>
+                  <div className="flex items-center gap-2.5 font-bold font-mono text-[11px]">
+                    <span className="flex items-center gap-1 text-amber-600">
+                      <Star className="w-3 h-3 fill-amber-500" />
+                      {hoveredRepo.stars}
+                    </span>
+                    <span className="flex items-center gap-1 text-neutral-600">
+                      <GitFork className="w-3 h-3" />
+                      {hoveredRepo.forks}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* Grid View */}
+      {viewMode === 'grid' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredRepos.map((repo) => {
+            const langColor = LANGUAGE_COLORS[repo.language] || DEFAULT_COLOR;
+            return (
+              <div
+                key={repo.id}
+                className="neo-card p-4 flex flex-col justify-between hover:-translate-y-1 hover:shadow-[6px_6px_0px_#000] transition-all"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h3 className="font-bold text-sm tracking-tight text-neutral-900 line-clamp-1">
+                      {repo.name}
+                    </h3>
+                    <a
+                      href={repo.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="p-1 hover:bg-neutral-100 rounded border border-black shrink-0"
+                      title="View on GitHub"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                  <p className="text-xs text-neutral-600 line-clamp-2 mb-4 leading-relaxed">
+                    {repo.description || 'No description provided for this repository.'}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t-2 border-black border-dashed">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-bold">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full inline-block border border-black"
+                      style={{ backgroundColor: langColor }}
+                    />
+                    <span>{repo.language || 'Other'}</span>
+                  </span>
+
+                  <div className="flex items-center gap-3 font-mono text-xs font-bold">
+                    <span className="flex items-center gap-1 text-amber-600">
+                      <Star className="w-3.5 h-3.5 fill-amber-500" />
+                      {repo.stars}
+                    </span>
+                    <span className="flex items-center gap-1 text-neutral-700">
+                      <GitFork className="w-3.5 h-3.5" />
+                      {repo.forks}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
